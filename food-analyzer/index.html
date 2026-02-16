@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="이미지를 업로드하면 AI가 음식의 칼로리, 성분표, 원가를 분석해드립니다.">
+    <title>음식 칼로리 & 원가 분석 | FoodAnalyzer</title>
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍕</text></svg>">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header>
+            <div class="logo">🍕</div>
+            <h1>음식 칼로리 & 원가 분석</h1>
+            <p class="subtitle">이미지를 업로드하면 AI가 칼로리, 영양소, 원가를 분석해드려요</p>
+        </header>
+
+        <!-- 업로드 섹션 -->
+        <section class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">이미지를 드래그하거나 클릭하여 업로드</div>
+                <div class="upload-hint">JPG, PNG, WEBP 파일 지원</div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+        </section>
+
+        <!-- 이미지 프리뷰 섹션 -->
+        <section class="preview-section" id="previewSection">
+            <div class="preview-container">
+                <img id="previewImage" class="preview-image" alt="업로드된 이미지">
+                <div id="analyzingBadge" class="analyzing-badge">
+                    🔍 AI가 분석 중입니다...
+                </div>
+            </div>
+        </section>
+
+        <!-- 결과 섹션 -->
+        <section class="results-section" id="resultsSection">
+            <div class="results-grid">
+
+                <!-- 칼로리 정보 카드 -->
+                <div class="card calories-card">
+                    <div class="card-header">
+                        <h2 class="card-title">칼로리 정보</h2>
+                        <div class="card-icon">🔥</div>
+                    </div>
+
+                    <div class="calorie-main">
+                        <div class="calorie-number" id="calorieNumber">0</div>
+                        <div class="calorie-label">kcal (<span id="foodServing">100g</span>당)</div>
+                    </div>
+
+                    <div class="macros-grid">
+                        <div class="macro-item">
+                            <div class="macro-value" id="carbsValue">0</div>
+                            <div class="macro-label">탄수화물 (g)</div>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-value" id="proteinValue">0</div>
+                            <div class="macro-label">단백질 (g)</div>
+                        </div>
+                        <div class="macro-item">
+                            <div class="macro-value" id="fatValue">0</div>
+                            <div class="macro-label">지방 (g)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 성분표 카드 -->
+                <div class="card nutrients-card">
+                    <div class="card-header">
+                        <h2 class="card-title">영양 성분표</h2>
+                        <div class="card-icon">🥗</div>
+                    </div>
+
+                    <div class="nutrient-list" id="nutrientsList">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
+                </div>
+
+                <!-- 원가 분석 카드 -->
+                <div class="card cost-card">
+                    <div class="card-header">
+                        <h2 class="card-title">원가 분석</h2>
+                        <div class="card-icon">💰</div>
+                    </div>
+
+                    <div class="total-cost">
+                        <div class="cost-number">₩<span id="totalCost">0</span></div>
+                        <div class="cost-label">예상 총 원가</div>
+                    </div>
+
+                    <div class="ingredients-list" id="ingredientsList">
+                        <!-- JavaScript로 동적 생성 -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="data.js"></script>
+    <script src="analyzer.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

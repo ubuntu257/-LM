@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>상쾌한 투두 리스트 🌿</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Docx & FileSaver -->
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans KR"', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#10b981', // Emerald 500
+                        secondary: '#34d399', // Emerald 400
+                        background: '#f0fdf4', // Green 50
+                        glass: 'rgba(255, 255, 255, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            /* Emerald Gradient */
+            min-height: 100vh;
+        }
+
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .todo-enter {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .todo-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 300ms, transform 300ms;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin 3s linear infinite;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center p-0 sm:p-4">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+
+        const Calendar = () => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+
+            const days = [];
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                days.push(<div key={`empty-${i}`} className="text-center py-1"></div>);
+            }
+            for (let i = 1; i <= daysInMonth; i++) {
+                const isToday =
+                    i === new Date().getDate() &&
+                    month === new Date().getMonth() &&
+                    year === new Date().getFullYear();
+                days.push(
+                    <div
+                        key={i}
+                        className={`text-center py-1 text-sm font-medium rounded-full cursor-pointer hover:bg-emerald-100 transition-colors ${isToday ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'text-gray-700'}`}
+                    >
+                        {i}
+                    </div>
+                );
+            }
+
+            const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+            const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+            return (
+                <div className="bg-white/40 backdrop-blur-sm rounded-2xl p-4 mb-4 border border-white/50 shadow-sm">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-4">
+                        <button onClick={prevMonth} className="p-1 hover:bg-white/50 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                        <h2 className="text-lg font-bold text-emerald-800">
+                            {year}년 {month + 1}월
+                        </h2>
+                        <button onClick={nextMonth} className="p-1 hover:bg-white/50 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-700" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    {/* Days Header */}
+                    <div className="grid grid-cols-7 mb-2">
+                        {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
+                            <div key={day} className={`text-center text-xs font-semibold ${idx === 0 ? 'text-red-500' : 'text-emerald-700'}`}>
+                                {day}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="grid grid-cols-7 gap-1 mb-4">
+                        {days}
+                    </div>
+
+                    {/* External Links */}
+                    <div className="flex gap-2 justify-center pt-2 border-t border-emerald-100">
+                        <a
+                            href="https://calendar.google.com/calendar/r"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs font-medium text-gray-600 hover:text-emerald-600 hover:shadow-md transition-all border border-gray-100"
+                        >
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Google_Calendar_icon_%282020%29.svg" className="w-4 h-4" alt="Google" />
+                            구글 캘린더
+                        </a>
+                        <a
+                            href="https://calendar.naver.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg text-xs font-medium text-gray-600 hover:text-emerald-600 hover:shadow-md transition-all border border-gray-100"
+                        >
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c5/Naver_Logo.png" className="w-4 h-4 object-contain" alt="Naver" />
+                            네이버 캘린더
+                        </a>
+                    </div>
+                </div>
+            );
+        };
+
+        const TodoItem = ({ todo, toggleTodo, deleteTodo, formatDate }) => {
+            const [isExpanded, setIsExpanded] = useState(false);
+            const limit = 50;
+            const isLong = todo.text.length > limit;
+
+            return (
+                <li className={`group flex items-start p-3 rounded-xl transition-all duration-300 border border-transparent hover:border-emerald-100 hover:bg-emerald-50/50 hover:shadow-sm ${todo.completed ? 'bg-gray-50' : 'bg-white'}`}>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleTodo(todo.id);
+                        }}
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mr-3 flex-shrink-0 mt-1 ${todo.completed ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300 hover:border-emerald-400'}`}
+                    >
+                        {todo.completed && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                        )}
+                    </button>
+
+                    <div className="flex-grow flex flex-col justify-center">
+                        <div
+                            onClick={() => {
+                                if (isLong) setIsExpanded(!isExpanded);
+                            }}
+                            className={`cursor-pointer text-gray-700 transition-all break-all ${todo.completed ? 'line-through text-gray-400' : ''} ${isLong ? 'hover:text-emerald-600' : ''}`}
+                            title={isLong ? (isExpanded ? "접기" : "펼치기") : ""}
+                        >
+                            {isExpanded || !isLong ? todo.text : todo.text.slice(0, limit) + (isLong ? '...' : '')}
+                        </div>
+
+                        {isLong && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                                className="text-xs text-emerald-500 hover:text-emerald-600 font-medium mt-1 self-start"
+                            >
+                                {isExpanded ? '접기' : '더보기'}
+                            </button>
+                        )}
+
+                        <span className="text-xs text-gray-400 mt-1 font-mono">
+                            {formatDate(todo.id)}
+                        </span>
+
+                        {/* Download Links if available attached to todo item - implementing text file download here if it's a report */}
+                        {todo.text.startsWith('[AI 요약]') && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const blob = new Blob([todo.fullReport || todo.text], { type: "text/plain;charset=utf-8" });
+                                    saveAs(blob, `meeting_report_${todo.id}.txt`);
+                                }}
+                                className="mt-2 text-xs bg-gray-100/80 text-gray-600 px-2 py-1 rounded hover:bg-gray-200 w-fit flex items-center gap-1"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                리포트 다운로드 (.txt)
+                            </button>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={() => deleteTodo(todo.id)}
+                        aria-label="Delete"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </li>
+            );
+        };
+
+        function App() {
+            const [todos, setTodos] = useState(() => {
+                const savedTodos = localStorage.getItem('todos');
+                if (savedTodos) {
+                    return JSON.parse(savedTodos);
+                } else {
+                    return [];
+                }
+            });
+            const [inputValue, setInputValue] = useState('');
+
+            useEffect(() => {
+                localStorage.setItem('todos', JSON.stringify(todos));
+            }, [todos]);
+
+            const addTodo = (e) => {
+                e.preventDefault();
+                if (!inputValue.trim()) return;
+
+                const newTodo = {
+                    id: Date.now(),
+                    text: inputValue,
+                    completed: false
+                };
+
+                setTodos([...todos, newTodo]);
+                setInputValue('');
+            };
+
+            const toggleTodo = (id) => {
+                setTodos(todos.map(todo =>
+                    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                ));
+            };
+
+            const deleteTodo = (id) => {
+                setTodos(todos.filter(todo => todo.id !== id));
+            };
+
+            const activeCount = todos.filter(t => !t.completed).length;
+
+            const sortedTodos = [...todos].sort((a, b) => Number(a.completed) - Number(b.completed));
+
+            const formatDate = (timestamp) => {
+                const date = new Date(timestamp);
+                const year = date.getFullYear();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                const hh = String(date.getHours()).padStart(2, '0');
+                const min = String(date.getMinutes()).padStart(2, '0');
+                return `${year}년 ${month}월 ${day}일 ${hh}:${min}`;
+            };
+
+            const [isListening, setIsListening] = useState(false);
+            const [isMeetingMode, setIsMeetingMode] = useState(false);
+            const [meetingTranscript, setMeetingTranscript] = useState('');
+
+            // Advanced Features State
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [analysisResult, setAnalysisResult] = useState(null);
+
+            // Audio Recording State
+            const [audioBlob, setAudioBlob] = useState(null);
+            const mediaRecorderRef = useRef(null);
+            const audioChunksRef = useRef([]);
+            const wakeLockRef = useRef(null);
+
+            // Gemini API Key State
+            const [geminiApiKey, setGeminiApiKey] = useState(() => {
+                return localStorage.getItem('geminiApiKey') || '';
+            });
+            const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+
+            // Save API Key to localStorage when it changes
+            useEffect(() => {
+                if (geminiApiKey) {
+                    localStorage.setItem('geminiApiKey', geminiApiKey);
+                }
+            }, [geminiApiKey]);
+
+            // Voice Input for Todo
+            const startListening = () => {
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome을 사용해주세요.');
+                    return;
+                }
+
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = 'ko-KR';
+
+                recognition.onstart = () => {
+                    console.log('[Todo Voice Input] Started input listening');
+                    setIsListening(true);
+                };
+
+                recognition.onend = () => {
+                    console.log('[Todo Voice Input] Stopped input listening');
+                    setIsListening(false);
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    console.log('[Todo Voice Input] Result:', transcript);
+                    setInputValue(prev => prev + (prev ? ' ' : '') + transcript);
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('[Todo Voice Input] Error:', event.error);
+                    alert('음성 인식 오류: ' + event.error);
+                    setIsListening(false);
+                };
+
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.error('[Todo Voice Input] Start Error:', e);
+                }
+            };
+
+            // Wake Lock Function
+            const requestWakeLock = async () => {
+                try {
+                    if ('wakeLock' in navigator) {
+                        wakeLockRef.current = await navigator.wakeLock.request('screen');
+                        console.log('[Wake Lock] Screen Wake Lock acquired');
+                    }
+                } catch (err) {
+                    console.error(`[Wake Lock] Error: ${err.name}, ${err.message}`);
+                }
+            };
+
+            const releaseWakeLock = async () => {
+                if (wakeLockRef.current) {
+                    await wakeLockRef.current.release();
+                    wakeLockRef.current = null;
+                    console.log('[Wake Lock] Screen Wake Lock released');
+                }
+            };
+
+            // Meeting Mode Logic (Transcription + Audio Recording + WakeLock)
+            useEffect(() => {
+                let recognition = null;
+                let stream = null;
+
+                const startMeetingMode = async () => {
+                    setMeetingTranscript(''); // Clear previous transcript
+
+                    if (!('webkitSpeechRecognition' in window) || !('MediaRecorder' in window)) {
+                        alert('이 브라우저는 미팅 모드(음성 인식 및 녹음)를 완벽하게 지원하지 않을 수 있습니다. 기능을 확인해주세요.');
+                    }
+
+                    // 1. Request Wake Lock
+                    await requestWakeLock();
+
+                    // 2. Start Audio Recording (MediaRecorder)
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorderRef.current = new MediaRecorder(stream);
+                        audioChunksRef.current = [];
+
+                        mediaRecorderRef.current.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                audioChunksRef.current.push(event.data);
+                            }
+                        };
+
+                        mediaRecorderRef.current.onstop = () => {
+                            const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                            setAudioBlob(blob);
+                            console.log('[Recorder] Recording finished, blob created');
+
+                            // Stop all tracks to release microphone
+                            if (stream) {
+                                stream.getTracks().forEach(track => track.stop());
+                            }
+                        };
+
+                        mediaRecorderRef.current.start();
+                        console.log('[Recorder] Started recording');
+
+                    } catch (err) {
+                        console.error('[Recorder] Error accessing microphone:', err);
+                        alert('마이크 접근 권한이 필요합니다.');
+                        setIsMeetingMode(false);
+                        return;
+                    }
+
+                    // 3. Start Speech Recognition
+                    recognition = new webkitSpeechRecognition();
+                    recognition.lang = 'ko-KR';
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+
+                    recognition.onstart = () => console.log('[Meeting Mode] Recognition started');
+
+                    recognition.onresult = (event) => {
+                        let finalTranscript = '';
+                        let interimTranscript = '';
+
+                        for (let i = event.resultIndex; i < event.results.length; ++i) {
+                            if (event.results[i].isFinal) {
+                                finalTranscript += event.results[i][0].transcript;
+                            } else {
+                                interimTranscript += event.results[i][0].transcript;
+                            }
+                        }
+
+                        console.log('[Meeting Mode] Transcript:', finalTranscript);
+
+                        // Check for Voice Commands (녹음끝, 녹음종료, 마이크꺼)
+                        const commandKeywords = ['녹음끝', '녹음종료', '마이크꺼', '녹음 끝', '녹음 종료', '마이크 꺼'];
+                        const foundCommand = commandKeywords.find(keyword =>
+                            finalTranscript.includes(keyword) || interimTranscript.includes(keyword)
+                        );
+
+                        if (foundCommand) {
+                            console.log('[Meeting Mode] Voice Command Detected:', foundCommand);
+
+                            // Remove command from transcript to clean it up
+                            const cleanTranscript = (finalTranscript + interimTranscript).replace(new RegExp(foundCommand, 'g'), '').trim();
+
+                            if (cleanTranscript) {
+                                setMeetingTranscript(prev => prev + ' ' + cleanTranscript);
+                            }
+
+                            // Stop everything
+                            setIsMeetingMode(false);
+                            return;
+                        }
+
+                        if (finalTranscript) {
+                            setMeetingTranscript(prev => prev + ' ' + finalTranscript);
+                        }
+                    };
+
+                    recognition.onerror = (event) => {
+                        console.error('[Meeting Mode] Recognition Error:', event.error);
+                        if (event.error === 'not-allowed') {
+                            alert('마이크 권한이 필요합니다.');
+                            setIsMeetingMode(false);
+                        }
+                        // Ignore 'no-speech' errors as they are common
+                    };
+
+                    recognition.onend = () => {
+                        console.log('[Meeting Mode] Recognition stopped');
+                        // Restart unless explicitly stopped (checked via isMeetingMode ref or state)
+                        // Since we can't easily access the fresh state inside this closure without refs,
+                        // we rely on the cleanup function/useEffect to handle the 'true' stop.
+                        // However, ensuring it restarts if it stopped accidentally is tricky.
+                        // For now, we rely on the fact that if isMeetingMode is true, this useEffect stays active.
+                        // But we need to check the CURRENT state. 
+                        // Simplified: We don't manually restart here to avoid infinite loops if permission is denied.
+                        // Instead, we trust 'continuous: true' and handle unexpected stops if needed.
+
+                        // NOTE: Chrome sometimes stops recognition silently. We might need a more robust keep-alive,
+                        // but sticking to standard implementation for now.
+                    };
+
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('[Meeting Mode] Start error:', e);
+                    }
+                };
+
+                if (isMeetingMode) {
+                    startMeetingMode();
+                }
+
+                return () => {
+                    // Cleanup
+                    if (recognition) {
+                        recognition.onend = null; // Prevent restart loops logic if any
+                        recognition.stop();
+                    }
+                    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                        mediaRecorderRef.current.stop();
+                    }
+                    releaseWakeLock();
+                };
+            }, [isMeetingMode]);
+
+            // Gemini API Call Function
+            const callGeminiAPI = async (transcript) => {
+                if (!geminiApiKey) {
+                    alert('Gemini API Key가 필요합니다. 헤더의 설정 아이콘을 클릭하여 API Key를 입력해주세요.');
+                    return null;
+                }
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: `다음은 회의 녹음 내용입니다:\n\n${transcript}\n\n위 내용을 바탕으로:\n1. 회의 요약을 작성해주세요.\n2. 액션 아이템(할 일)을 추출하여 일정 형식으로 만들어주세요.\n\n출력 형식:\n===요약===\n[회의 요약 내용]\n\n===일정===\n- [할 일 1]\n- [할 일 2]\n...`
+                                }]
+                            }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API 호출 실패: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    console.log('[Gemini API] Response:', data);
+
+                    // Parse response
+                    const aiText = data.candidates[0]?.content?.parts[0]?.text || '';
+
+                    // Extract summary and schedule
+                    const summaryMatch = aiText.match(/===요약===\s*([\s\S]*?)\s*===일정===/);
+                    const scheduleMatch = aiText.match(/===일정===\s*([\s\S]*)/);
+
+                    const summary = summaryMatch ? summaryMatch[1].trim() : aiText.split('===일정===')[0].trim();
+                    const scheduleText = scheduleMatch ? scheduleMatch[1].trim() : '';
+
+                    // Parse schedule items
+                    const actionItems = scheduleText
+                        .split('\n')
+                        .filter(line => line.trim().startsWith('-'))
+                        .map(line => line.trim().substring(1).trim())
+                        .filter(item => item.length > 0);
+
+                    const result = {
+                        filename: `meeting_${new Date().toISOString().slice(0, 10)}.txt`,
+                        summary: summary || '요약 내용을 생성하지 못했습니다.',
+                        actionItems: actionItems.length > 0 ? actionItems : ['액션 아이템이 없습니다.']
+                    };
+
+                    return result;
+
+                } catch (error) {
+                    console.error('[Gemini API] Error:', error);
+                    alert(`AI 요약 생성 중 오류가 발생했습니다: ${error.message}`);
+                    return null;
+                }
+            };
+
+            // Auto Analysis on Stop (Using Gemini AI)
+            useEffect(() => {
+                if (!isMeetingMode && meetingTranscript.length > 0 && !analysisResult) {
+                    // Trigger Auto Analysis with Gemini
+                    (async () => {
+                        setIsAnalyzing(true);
+
+                        const result = await callGeminiAPI(meetingTranscript);
+
+                        if (result) {
+                            setAnalysisResult(result);
+
+                            // Auto Add summary to Todo
+                            const textToSave = `[AI 요약] ${result.summary.slice(0, 50)}...`;
+                            const summaryTodo = {
+                                id: Date.now(),
+                                text: textToSave,
+                                completed: false,
+                                fullReport: `
+[AI 회의 요약 보고서]
+일시: ${new Date().toLocaleString('ko-KR')}
+
+[요약 내용]
+${result.summary}
+
+[액션 아이템]
+${result.actionItems.map(item => `- ${item}`).join('\n')}
+`
+                            };
+                            setTodos(prev => [...prev, summaryTodo]);
+
+                            // Add each action item as a separate todo
+                            result.actionItems.forEach((item, index) => {
+                                if (item !== '액션 아이템이 없습니다.') {
+                                    setTimeout(() => {
+                                        const actionTodo = {
+                                            id: Date.now() + index + 1,
+                                            text: item,
+                                            completed: false
+                                        };
+                                        setTodos(prevTodos => [...prevTodos, actionTodo]);
+                                    }, (index + 1) * 100); // Slight delay to ensure unique IDs
+                                }
+                            });
+                        }
+
+                        setIsAnalyzing(false);
+                    })();
+                }
+            }, [isMeetingMode, meetingTranscript, analysisResult]);
+
+
+            const downloadAudio = () => {
+                if (!audioBlob) return;
+                saveAs(audioBlob, `meeting_recording_${new Date().toISOString().slice(0, 10)}.webm`);
+            };
+
+            // Download all todos as text file
+            const downloadAllTodos = () => {
+                if (todos.length === 0) {
+                    alert('다운로드할 할 일이 없습니다.');
+                    return;
+                }
+
+                const currentDate = new Date().toLocaleString('ko-KR');
+                let textContent = `===== To-Do List =====\n생성 일시: ${currentDate}\n총 ${todos.length}개 항목\n\n`;
+
+                todos.forEach((todo, index) => {
+                    const status = todo.completed ? '[완료]' : '[진행중]';
+                    const date = formatDate(todo.id);
+                    textContent += `${index + 1}. ${status} ${todo.text}\n`;
+                    textContent += `   작성: ${date}\n\n`;
+                });
+
+                const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+                saveAs(blob, `todo_list_${new Date().toISOString().slice(0, 10)}.txt`);
+            };
+
+            // ... (keep helper functions like saveReportAsTxt if needed, but UI is streamlined)
+
+            return (
+                <div className="w-full h-screen sm:h-[900px] sm:max-w-md flex flex-col bg-white/90 sm:rounded-3xl shadow-2xl overflow-hidden glass-morphism border-0 sm:border border-white/50 relative">
+                    {/* Header with Calendar */}
+                    <div className="p-8 pb-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex-shrink-0">
+                        <Calendar />
+
+                        <div className="flex justify-between items-start mb-2">
+                            <h1 className="text-3xl font-bold">오늘 할 일 🌿</h1>
+                            <div className="flex gap-2">
+                                {/* API Key Settings Button */}
+                                <button
+                                    onClick={() => setShowApiKeyInput(!showApiKeyInput)}
+                                    className="text-white/80 hover:text-white transition-colors p-2"
+                                    title="Gemini API 설정"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </button>
+                                {/* Download All Button */}
+                                <button
+                                    onClick={downloadAllTodos}
+                                    className="text-white/80 hover:text-white transition-colors p-2"
+                                    title="전체 다운로드"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* API Key Input (collapsible) */}
+                        {showApiKeyInput && (
+                            <div className="mt-3 mb-2 bg-white/10 backdrop-blur-sm p-3 rounded-lg">
+                                <label className="text-xs text-emerald-100 block mb-1">Gemini API Key</label>
+                                <input
+                                    type="password"
+                                    value={geminiApiKey}
+                                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                                    placeholder="API Key를 입력하세요..."
+                                    className="w-full px-3 py-2 text-sm rounded bg-white/20 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50"
+                                />
+                                <p className="text-xs text-emerald-100 mt-1 opacity-80">
+                                    {geminiApiKey ? '✓ API Key 저장됨' : '미팅 요약에 사용됩니다'}
+                                </p>
+                            </div>
+                        )}
+
+                        <p className="text-emerald-100 opacity-90 text-sm">
+                            {new Date().toLocaleDateString('ko-KR', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                weekday: 'long'
+                            })}
+                        </p>
+                        <div className="mt-4 flex justify-between items-end">
+                            <span className="text-4xl font-light">{activeCount}</span>
+                            <span className="text-sm font-medium opacity-80 mb-1">Tasks Left</span>
+                        </div>
+                    </div>
+
+                    {/* Input Area */}
+                    <form onSubmit={addTodo} className="p-6 pb-2 flex-shrink-0">
+                        <div className="relative flex items-center">
+                            <input
+                                type="text"
+                                className="w-full pl-4 pr-24 py-4 rounded-xl bg-gray-50 border-none focus:ring-2 focus:ring-emerald-300 outline-none transition-all shadow-inner text-gray-700 placeholder-gray-400"
+                                placeholder="할 일을 입력하세요..."
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                            />
+
+                            {/* Voice Button */}
+                            <button
+                                type="button"
+                                onClick={startListening}
+                                className={`absolute right-14 top-2 bottom-2 w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:text-emerald-500'}`}
+                                title="음성으로 입력하기"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            </button>
+
+                            {/* Add Button */}
+                            <button
+                                type="submit"
+                                className="absolute right-2 top-2 bottom-2 w-10 h-10 bg-emerald-500 hover:bg-emerald-600 rounded-lg text-white flex items-center justify-center transition-colors shadow-md"
+                                disabled={!inputValue.trim()}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* Todo List */}
+                    <div className="p-6 pt-2 flex-grow overflow-y-auto">
+                        {todos.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-400 opacity-60">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                </svg>
+                                <p>할 일이 없네요! 시작해볼까요?</p>
+                            </div>
+                        ) : (
+                            <ul className="space-y-3">
+                                {sortedTodos.map(todo => (
+                                    <TodoItem
+                                        key={todo.id}
+                                        todo={todo}
+                                        toggleTodo={toggleTodo}
+                                        deleteTodo={deleteTodo}
+                                        formatDate={formatDate}
+                                    />
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* Advanced Features (Meeting Mode Only) */}
+                    <div className="p-4 border-t border-gray-100 bg-gray-50/50 space-y-3">
+                        {/* Meeting Toggle */}
+                        <div className="flex flex-col gap-1">
+                            {isMeetingMode && (
+                                <p className="text-xs text-red-500 text-center font-medium animate-pulse">
+                                    🚨 전화 알림을 막으려면 '방해 금지 모드'를 켜주세요!
+                                </p>
+                            )}
+                            <button
+                                onClick={() => setIsMeetingMode(!isMeetingMode)}
+                                className={`w-full py-3 rounded-xl flex items-center justify-center transition-all ${isMeetingMode ? 'bg-red-500 text-white shadow-lg animate-pulse' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                                {isMeetingMode ? '미팅 녹음 중... (대화 종료 시 자동 요약)' : '미팅 모드 시작'}
+                            </button>
+                        </div>
+
+                        {/* Processing Status */}
+                        {isAnalyzing && (
+                            <div className="w-full py-3 rounded-xl flex items-center justify-center bg-emerald-50 border border-emerald-200">
+                                <div className="flex items-center text-emerald-600">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    AI가 내용을 요약하여 추가하고 있습니다...
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Meeting Result Area (Optional: Show Transcript while recording) */}
+                        {isMeetingMode && meetingTranscript && (
+                            <div className="mt-4 p-4 bg-white rounded-xl border border-gray-200 shadow-sm animate-fade-in max-h-60 overflow-y-auto">
+                                <h3 className="text-sm font-bold text-gray-500 mb-2">
+                                    실시간 기록
+                                </h3>
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                        {meetingTranscript}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

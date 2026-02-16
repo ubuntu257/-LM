@@ -1,0 +1,470 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* 컬러 팔레트 */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1a2332;
+  
+  /* 그라디언트 */
+  --gradient-primary: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 50%, #ffa94d 100%);
+  --gradient-secondary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --gradient-success: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  --gradient-purple: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+  
+  /* 텍스트 색상 */
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  
+  /* 글래스모피즘 */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  
+  /* 그림자 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(255, 107, 107, 0.3);
+  
+  /* 간격 */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* 애니메이션 */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(79, 172, 254, 0.1) 0%, transparent 50%);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* 컨테이너 */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+}
+
+/* 헤더 */
+header {
+  text-align: center;
+  padding: var(--spacing-xl) 0;
+  margin-bottom: var(--spacing-lg);
+}
+
+.logo {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-sm);
+  filter: drop-shadow(0 4px 12px rgba(255, 107, 107, 0.4));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--spacing-xs);
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+/* 업로드 섹션 */
+.upload-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.upload-area {
+  background: var(--glass-bg);
+  border: 2px dashed var(--glass-border);
+  border-radius: 24px;
+  padding: var(--spacing-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.upload-area:hover {
+  border-color: #ff6b6b;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+
+.upload-area:hover::before {
+  opacity: 0.05;
+}
+
+.upload-area.dragover {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  transform: scale(1.02);
+}
+
+.upload-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.8;
+}
+
+.upload-text {
+  font-size: 1.3rem;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+}
+
+.upload-hint {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+#fileInput {
+  display: none;
+}
+
+/* 이미지 프리뷰 */
+.preview-section {
+  display: none;
+  margin-bottom: var(--spacing-xl);
+  animation: fadeIn var(--transition-slow);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.preview-container {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: var(--spacing-lg);
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.analyzing-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--gradient-primary);
+  border-radius: 50px;
+  font-weight: 600;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* 결과 섹션 */
+.results-section {
+  display: none;
+  animation: fadeIn var(--transition-slow);
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 카드 */
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: var(--spacing-lg);
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
+
+.card-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.card-icon {
+  font-size: 2rem;
+  opacity: 0.8;
+}
+
+/* 칼로리 카드 */
+.calories-card::before {
+  background: var(--gradient-primary);
+}
+
+.calorie-main {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.calorie-number {
+  font-size: 4rem;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.calorie-label {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.macros-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+.macro-item {
+  text-align: center;
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+}
+
+.macro-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.macro-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+}
+
+/* 성분표 카드 */
+.nutrients-card::before {
+  background: var(--gradient-secondary);
+}
+
+.nutrient-list {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.nutrient-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+}
+
+.nutrient-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(4px);
+}
+
+.nutrient-name {
+  font-weight: 500;
+}
+
+.nutrient-value {
+  font-weight: 600;
+  color: #4facfe;
+}
+
+/* 원가 분석 카드 */
+.cost-card::before {
+  background: var(--gradient-success);
+}
+
+.total-cost {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-lg);
+  background: rgba(67, 233, 123, 0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(67, 233, 123, 0.2);
+}
+
+.cost-number {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #43e97b;
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+.cost-label {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.ingredients-list {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.ingredient-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.ingredient-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ingredient-name {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.ingredient-amount {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.ingredient-price {
+  font-weight: 600;
+  color: #43e97b;
+}
+
+/* 로딩 스피너 */
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #ff6b6b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+  
+  .logo {
+    font-size: 2.5rem;
+  }
+  
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .macros-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .calorie-number {
+    font-size: 3rem;
+  }
+  
+  .cost-number {
+    font-size: 2.5rem;
+  }
+}
+
+/* 유틸리티 클래스 */
+.hidden {
+  display: none !important;
+}
+
+.show {
+  display: block !important;
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-normal);
+}
