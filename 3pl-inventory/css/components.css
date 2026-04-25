@@ -1,0 +1,167 @@
+/* 3PL - Component Styles */
+
+/* ── Buttons ── */
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 20px; border-radius:var(--radius-md);
+  font-weight:600; font-size:0.875rem;
+  transition:all var(--transition-normal);
+  position:relative; overflow:hidden;
+}
+.btn-primary {
+  background:var(--accent-gradient); color:#fff;
+  box-shadow:0 2px 10px rgba(99,102,241,0.3);
+}
+.btn-primary:hover { box-shadow:0 4px 20px rgba(99,102,241,0.5); transform:translateY(-1px); }
+.btn-secondary {
+  background:var(--bg-glass); color:var(--text-primary);
+  border:1px solid var(--border-color);
+}
+.btn-secondary:hover { background:rgba(255,255,255,0.08); border-color:var(--border-color-hover); }
+.btn-danger { background:var(--color-danger-bg); color:var(--color-danger); border:1px solid rgba(239,68,68,0.2); }
+.btn-danger:hover { background:rgba(239,68,68,0.2); }
+.btn-sm { padding:6px 14px; font-size:0.8rem; }
+.btn-lg { padding:14px 28px; font-size:1rem; }
+.btn-icon { padding:8px; border-radius:var(--radius-sm); }
+.btn-icon:hover { background:var(--bg-glass); }
+
+/* ── Form Elements ── */
+.form-group { margin-bottom:20px; }
+.form-label {
+  display:block; margin-bottom:6px;
+  font-size:0.85rem; font-weight:500; color:var(--text-secondary);
+}
+.form-input, .form-select {
+  width:100%; padding:12px 16px;
+  background:var(--bg-input); color:var(--text-primary);
+  border:1px solid var(--border-color); border-radius:var(--radius-md);
+  font-size:0.9rem; transition:all var(--transition-fast);
+}
+.form-input:focus, .form-select:focus {
+  border-color:var(--border-color-focus);
+  box-shadow:0 0 0 3px rgba(99,102,241,0.15);
+  background:rgba(255,255,255,0.08);
+}
+.form-input::placeholder { color:var(--text-tertiary); }
+.form-select option { background:var(--bg-secondary); color:var(--text-primary); }
+
+/* ── Cards ── */
+.glass-card {
+  background:var(--bg-card);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border-color);
+  border-radius:var(--radius-lg);
+  padding:24px;
+  transition:all var(--transition-normal);
+}
+.glass-card:hover {
+  border-color:var(--border-color-hover);
+  box-shadow:var(--shadow-glow);
+}
+
+/* ── Badges ── */
+.badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:4px 10px; border-radius:var(--radius-full);
+  font-size:0.75rem; font-weight:600;
+}
+.badge-success { background:var(--color-success-bg); color:var(--color-success); }
+.badge-warning { background:var(--color-warning-bg); color:var(--color-warning); }
+.badge-danger { background:var(--color-danger-bg); color:var(--color-danger); }
+.badge-info { background:var(--color-info-bg); color:var(--color-info); }
+.badge-inbound { background:var(--color-inbound-bg); color:var(--color-inbound); }
+.badge-outbound { background:var(--color-outbound-bg); color:var(--color-outbound); }
+
+/* ── Modal ── */
+.modal-overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.6); backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; opacity:0; visibility:hidden;
+  transition:all var(--transition-normal);
+}
+.modal-overlay.active { opacity:1; visibility:visible; }
+.modal {
+  background:var(--bg-secondary); border:1px solid var(--border-color);
+  border-radius:var(--radius-xl); padding:32px;
+  width:90%; max-width:560px; max-height:85vh; overflow-y:auto;
+  transform:scale(0.9); transition:transform var(--transition-normal);
+}
+.modal-overlay.active .modal { transform:scale(1); }
+.modal-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:24px; padding-bottom:16px;
+  border-bottom:1px solid var(--border-color);
+}
+.modal-header h3 { font-size:1.2rem; }
+.modal-close {
+  width:36px; height:36px; border-radius:var(--radius-sm);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--text-secondary); transition:all var(--transition-fast);
+}
+.modal-close:hover { background:var(--bg-glass); color:var(--text-primary); }
+.modal-footer {
+  display:flex; justify-content:flex-end; gap:12px;
+  margin-top:24px; padding-top:16px;
+  border-top:1px solid var(--border-color);
+}
+
+/* ── Table ── */
+.data-table { width:100%; }
+.data-table thead th {
+  padding:12px 16px; text-align:left;
+  font-size:0.8rem; font-weight:600;
+  color:var(--text-tertiary); text-transform:uppercase;
+  letter-spacing:0.05em;
+  border-bottom:1px solid var(--border-color);
+  background:rgba(255,255,255,0.02);
+}
+.data-table tbody td {
+  padding:14px 16px; font-size:0.9rem;
+  border-bottom:1px solid rgba(255,255,255,0.04);
+  color:var(--text-secondary);
+}
+.data-table tbody tr { transition:background var(--transition-fast); }
+.data-table tbody tr:hover { background:rgba(255,255,255,0.03); }
+
+/* ── Search Bar ── */
+.search-bar {
+  position:relative; flex:1; max-width:400px;
+}
+.search-bar .search-icon {
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  color:var(--text-tertiary); pointer-events:none;
+}
+.search-bar input {
+  width:100%; padding:10px 16px 10px 42px;
+  background:var(--bg-input); color:var(--text-primary);
+  border:1px solid var(--border-color); border-radius:var(--radius-md);
+  font-size:0.875rem;
+  transition:all var(--transition-fast);
+}
+.search-bar input:focus {
+  border-color:var(--border-color-focus);
+  box-shadow:0 0 0 3px rgba(99,102,241,0.15);
+}
+
+/* ── Empty State ── */
+.empty-state {
+  display:flex; flex-direction:column; align-items:center;
+  padding:60px 20px; color:var(--text-tertiary);
+}
+.empty-state svg { margin-bottom:16px; opacity:0.4; }
+.empty-state p { font-size:0.95rem; }
+
+/* ── Tooltip ── */
+.tooltip { position:relative; }
+.tooltip::after {
+  content:attr(data-tooltip);
+  position:absolute; bottom:calc(100% + 8px); left:50%;
+  transform:translateX(-50%); padding:6px 12px;
+  background:var(--bg-tertiary); color:var(--text-primary);
+  font-size:0.75rem; border-radius:var(--radius-sm);
+  white-space:nowrap; opacity:0; pointer-events:none;
+  transition:opacity var(--transition-fast);
+}
+.tooltip:hover::after { opacity:1; }
