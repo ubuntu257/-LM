@@ -10,6 +10,7 @@ const Dashboard = {
       <div class="dashboard-grid">
         ${this.renderKPI('kpi-products', 'box', '총 제품 수', stats.totalProducts, '종')}
         ${this.renderKPI('kpi-stock', 'package', '총 재고 수량', stats.totalStock, '개')}
+        ${this.renderKPI('kpi-settlement', 'dollar-sign', '총 정산금액', stats.totalSettlement, '원')}
         ${this.renderKPI('kpi-inbound', 'arrow-down-circle', '금일 입고', stats.todayInbound, '개')}
         ${this.renderKPI('kpi-outbound', 'arrow-up-circle', '금일 출고', stats.todayOutbound, '개')}
       </div>

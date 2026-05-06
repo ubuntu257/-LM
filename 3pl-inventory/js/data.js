@@ -110,9 +110,18 @@ const DB = {
     const txns = this.getTransactions(companyId);
     const today = new Date().toDateString();
     const todayTxns = txns.filter(t => new Date(t.date).toDateString() === today);
+    
+    // 정산금액 계산 (출고된 총 수량 * 입고단가)
+    let totalSettlement = 0;
+    products.forEach(p => {
+      const soldQty = txns.filter(t => t.productId === p.id && t.type === 'outbound').reduce((sum, t) => sum + t.quantity, 0);
+      totalSettlement += soldQty * (p.incomingPrice || 0);
+    });
+
     return {
       totalProducts: products.length,
       totalStock: products.reduce((s, p) => s + p.currentStock, 0),
+      totalSettlement,
       todayInbound: todayTxns.filter(t => t.type==='inbound').reduce((s,t) => s+t.quantity, 0),
       todayOutbound: todayTxns.filter(t => t.type==='outbound').reduce((s,t) => s+t.quantity, 0),
       lowStockProducts: products.filter(p => p.currentStock <= p.safetyStock),

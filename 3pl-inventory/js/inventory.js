@@ -47,7 +47,7 @@ const Inventory = {
       <div class="inventory-table-wrap animate-fade-in">
         <table class="data-table">
           <thead><tr>
-            <th>제품정보</th><th>카테고리</th><th>재고현황</th><th>위치</th><th>판매가격</th>
+            <th>제품정보</th><th>카테고리</th><th>재고현황</th><th>위치</th><th>입고단가</th><th>판매가격</th>
             ${isAdmin ? '<th>관리</th>' : ''}
           </tr></thead>
           <tbody id="inventoryBody"></tbody>
@@ -140,7 +140,7 @@ const Inventory = {
     if (!body) return;
 
     body.innerHTML = products.length === 0
-      ? `<tr><td colspan="${isAdmin?6:5}" style="text-align:center;padding:40px;color:var(--text-tertiary)">제품이 없습니다</td></tr>`
+      ? `<tr><td colspan="${isAdmin?7:6}" style="text-align:center;padding:40px;color:var(--text-tertiary)">제품이 없습니다</td></tr>`
       : products.map(p => {
         const ratio = p.safetyStock > 0 ? p.currentStock / p.safetyStock : 999;
         const level = ratio <= 0.5 ? 'danger' : ratio <= 1 ? 'warning' : 'safe';
@@ -161,6 +161,7 @@ const Inventory = {
             <span class="stock-num" style="color:var(--color-${level})">${p.currentStock.toLocaleString()} ${p.unit}</span>
           </div></td>
           <td><span class="location-tag"><i data-lucide="map-pin" style="width:12px;height:12px"></i>${p.location}</span></td>
+          <td style="color:var(--text-secondary)">₩${(p.incomingPrice||0).toLocaleString()}</td>
           <td style="color:var(--text-secondary)">₩${p.price.toLocaleString()}</td>
           ${isAdmin ? `<td><div class="table-actions">
             <button onclick="Inventory.showEditModal('${p.id}')" title="수정"><i data-lucide="edit-2" style="width:15px;height:15px"></i></button>
@@ -199,6 +200,7 @@ const Inventory = {
           const safety = parseInt(row['안전재고'] || row['safetyStock'] || 0);
           const unit = row['단위'] || row['unit'] || '개';
           const location = row['위치'] || row['location'] || '-';
+          const incomingPrice = parseInt(row['입고단가'] || row['incomingPrice'] || 0);
           const price = parseInt(row['판매가격'] || row['단가'] || row['price'] || 0);
           const compName = row['업체명'] || row['업체'] || row['company'] || '';
           const companyId = compMap[compName] || companies[0]?.id;
@@ -208,7 +210,7 @@ const Inventory = {
           products.push({
             companyId, name, sku, category,
             currentStock: stock, safetyStock: safety,
-            unit, location, price, weight: 0.1
+            unit, location, incomingPrice, price, weight: 0.1
           });
         });
 
@@ -251,13 +253,14 @@ const Inventory = {
         '단위': p.unit,
         '상태': status,
         '창고위치': p.location,
+        '입고단가(원)': p.incomingPrice || 0,
         '판매가격(원)': p.price
       };
     });
 
     const ws = XLSX.utils.json_to_sheet(data);
     ws['!cols'] = [
-      {wch:18},{wch:25},{wch:16},{wch:12},{wch:10},{wch:10},{wch:6},{wch:6},{wch:10},{wch:12}
+      {wch:18},{wch:25},{wch:16},{wch:12},{wch:10},{wch:10},{wch:6},{wch:6},{wch:10},{wch:12},{wch:12}
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'inventory');
@@ -307,7 +310,9 @@ const Inventory = {
             <div class="form-group"><label class="form-label">안전 재고</label>
               <input class="form-input" id="prodSafety" type="number" min="0" required></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <div class="form-group"><label class="form-label">입고단가 (₩)</label>
+              <input class="form-input" id="prodIncomingPrice" type="number" min="0" required></div>
             <div class="form-group"><label class="form-label">판매가격 (₩)</label>
               <input class="form-input" id="prodPrice" type="number" min="0" required></div>
             <div class="form-group"><label class="form-label">창고 위치</label>
@@ -340,6 +345,7 @@ const Inventory = {
     document.getElementById('prodUnit').value = p.unit;
     document.getElementById('prodStock').value = p.currentStock;
     document.getElementById('prodSafety').value = p.safetyStock;
+    document.getElementById('prodIncomingPrice').value = p.incomingPrice || 0;
     document.getElementById('prodPrice').value = p.price;
     document.getElementById('prodLocation').value = p.location;
     const compSel = document.getElementById('prodCompany');
@@ -361,6 +367,7 @@ const Inventory = {
       unit: document.getElementById('prodUnit').value,
       currentStock: parseInt(document.getElementById('prodStock').value),
       safetyStock: parseInt(document.getElementById('prodSafety').value),
+      incomingPrice: parseInt(document.getElementById('prodIncomingPrice').value),
       price: parseInt(document.getElementById('prodPrice').value),
       location: document.getElementById('prodLocation').value,
       weight: 0.1

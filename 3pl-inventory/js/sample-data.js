@@ -10,24 +10,24 @@ const SampleData = {
 
   products: [
     // 한국전자
-    { id:'prod_001', companyId:'comp_001', name:'무선 블루투스 이어폰 Pro', sku:'WBE-PRO-001', category:'전자제품', currentStock:1250, safetyStock:200, unit:'개', location:'A-01-01', price:89000, weight:0.15 },
-    { id:'prod_002', companyId:'comp_001', name:'USB-C 고속 충전기 65W', sku:'CHG-65W-002', category:'전자제품', currentStock:85, safetyStock:100, unit:'개', location:'A-01-02', price:35000, weight:0.2 },
-    { id:'prod_003', companyId:'comp_001', name:'스마트워치 밴드 (실리콘)', sku:'SWB-SIL-003', category:'액세서리', currentStock:3200, safetyStock:500, unit:'개', location:'A-02-01', price:15000, weight:0.05 },
-    { id:'prod_004', companyId:'comp_001', name:'포터블 보조배터리 20000mAh', sku:'PBT-20K-004', category:'전자제품', currentStock:420, safetyStock:150, unit:'개', location:'A-02-03', price:42000, weight:0.35 },
-    { id:'prod_005', companyId:'comp_001', name:'노이즈캔슬링 헤드폰', sku:'NCH-BLK-005', category:'전자제품', currentStock:30, safetyStock:50, unit:'개', location:'A-03-01', price:189000, weight:0.28 },
+    { id:'prod_001', companyId:'comp_001', name:'무선 블루투스 이어폰 Pro', sku:'WBE-PRO-001', category:'전자제품', currentStock:1250, safetyStock:200, unit:'개', location:'A-01-01', incomingPrice:53000, price:89000, weight:0.15 },
+    { id:'prod_002', companyId:'comp_001', name:'USB-C 고속 충전기 65W', sku:'CHG-65W-002', category:'전자제품', currentStock:85, safetyStock:100, unit:'개', location:'A-01-02', incomingPrice:21000, price:35000, weight:0.2 },
+    { id:'prod_003', companyId:'comp_001', name:'스마트워치 밴드 (실리콘)', sku:'SWB-SIL-003', category:'액세서리', currentStock:3200, safetyStock:500, unit:'개', location:'A-02-01', incomingPrice:9000, price:15000, weight:0.05 },
+    { id:'prod_004', companyId:'comp_001', name:'포터블 보조배터리 20000mAh', sku:'PBT-20K-004', category:'전자제품', currentStock:420, safetyStock:150, unit:'개', location:'A-02-03', incomingPrice:25000, price:42000, weight:0.35 },
+    { id:'prod_005', companyId:'comp_001', name:'노이즈캔슬링 헤드폰', sku:'NCH-BLK-005', category:'전자제품', currentStock:30, safetyStock:50, unit:'개', location:'A-03-01', incomingPrice:110000, price:189000, weight:0.28 },
     // 프레시푸드
-    { id:'prod_006', companyId:'comp_002', name:'프리미엄 견과류 믹스 500g', sku:'NUT-MIX-001', category:'식품', currentStock:5600, safetyStock:1000, unit:'봉', location:'B-01-01', price:12000, weight:0.5 },
-    { id:'prod_007', companyId:'comp_002', name:'유기농 그래놀라 바', sku:'GRN-BAR-002', category:'식품', currentStock:180, safetyStock:300, unit:'박스', location:'B-01-02', price:28000, weight:1.2 },
-    { id:'prod_008', companyId:'comp_002', name:'콤부차 오리지널 350ml', sku:'KBC-ORI-003', category:'음료', currentStock:8200, safetyStock:2000, unit:'병', location:'B-02-01', price:3500, weight:0.38 },
-    { id:'prod_009', companyId:'comp_002', name:'단백질 쉐이크 파우더 1kg', sku:'PRT-PWD-004', category:'건강식품', currentStock:920, safetyStock:200, unit:'통', location:'B-02-02', price:45000, weight:1.1 },
+    { id:'prod_006', companyId:'comp_002', name:'프리미엄 견과류 믹스 500g', sku:'NUT-MIX-001', category:'식품', currentStock:5600, safetyStock:1000, unit:'봉', location:'B-01-01', incomingPrice:7000, price:12000, weight:0.5 },
+    { id:'prod_007', companyId:'comp_002', name:'유기농 그래놀라 바', sku:'GRN-BAR-002', category:'식품', currentStock:180, safetyStock:300, unit:'박스', location:'B-01-02', incomingPrice:16000, price:28000, weight:1.2 },
+    { id:'prod_008', companyId:'comp_002', name:'콤부차 오리지널 350ml', sku:'KBC-ORI-003', category:'음료', currentStock:8200, safetyStock:2000, unit:'병', location:'B-02-01', incomingPrice:2000, price:3500, weight:0.38 },
+    { id:'prod_009', companyId:'comp_002', name:'단백질 쉐이크 파우더 1kg', sku:'PRT-PWD-004', category:'건강식품', currentStock:920, safetyStock:200, unit:'통', location:'B-02-02', incomingPrice:27000, price:45000, weight:1.1 },
     // 스타일웨어
-    { id:'prod_010', companyId:'comp_003', name:'오버핏 코튼 티셔츠 (화이트)', sku:'TSH-WHT-001', category:'의류', currentStock:2100, safetyStock:300, unit:'장', location:'C-01-01', price:29000, weight:0.2 },
-    { id:'prod_011', companyId:'comp_003', name:'슬림핏 데님 팬츠', sku:'DNM-SLM-002', category:'의류', currentStock:45, safetyStock:100, unit:'벌', location:'C-01-02', price:59000, weight:0.6 },
-    { id:'prod_012', companyId:'comp_003', name:'캔버스 스니커즈 (블랙)', sku:'SNK-BLK-003', category:'신발', currentStock:780, safetyStock:150, unit:'켤레', location:'C-02-01', price:49000, weight:0.7 },
+    { id:'prod_010', companyId:'comp_003', name:'오버핏 코튼 티셔츠 (화이트)', sku:'TSH-WHT-001', category:'의류', currentStock:2100, safetyStock:300, unit:'장', location:'C-01-01', incomingPrice:17000, price:29000, weight:0.2 },
+    { id:'prod_011', companyId:'comp_003', name:'슬림핏 데님 팬츠', sku:'DNM-SLM-002', category:'의류', currentStock:45, safetyStock:100, unit:'벌', location:'C-01-02', incomingPrice:35000, price:59000, weight:0.6 },
+    { id:'prod_012', companyId:'comp_003', name:'캔버스 스니커즈 (블랙)', sku:'SNK-BLK-003', category:'신발', currentStock:780, safetyStock:150, unit:'켤레', location:'C-02-01', incomingPrice:29000, price:49000, weight:0.7 },
     // 헬스케어플러스
-    { id:'prod_013', companyId:'comp_004', name:'비타민C 1000mg 60정', sku:'VTC-1K-001', category:'건강식품', currentStock:4500, safetyStock:500, unit:'병', location:'D-01-01', price:18000, weight:0.12 },
-    { id:'prod_014', companyId:'comp_004', name:'오메가3 피쉬오일 120캡슐', sku:'OMG-FO-002', category:'건강식품', currentStock:60, safetyStock:100, unit:'병', location:'D-01-02', price:32000, weight:0.18 },
-    { id:'prod_015', companyId:'comp_004', name:'프로바이오틱스 유산균', sku:'PRB-LC-003', category:'건강식품', currentStock:2800, safetyStock:400, unit:'박스', location:'D-02-01', price:25000, weight:0.08 },
+    { id:'prod_013', companyId:'comp_004', name:'비타민C 1000mg 60정', sku:'VTC-1K-001', category:'건강식품', currentStock:4500, safetyStock:500, unit:'병', location:'D-01-01', incomingPrice:10000, price:18000, weight:0.12 },
+    { id:'prod_014', companyId:'comp_004', name:'오메가3 피쉬오일 120캡슐', sku:'OMG-FO-002', category:'건강식품', currentStock:60, safetyStock:100, unit:'병', location:'D-01-02', incomingPrice:19000, price:32000, weight:0.18 },
+    { id:'prod_015', companyId:'comp_004', name:'프로바이오틱스 유산균', sku:'PRB-LC-003', category:'건강식품', currentStock:2800, safetyStock:400, unit:'박스', location:'D-02-01', incomingPrice:15000, price:25000, weight:0.08 },
   ],
 
   generateTransactions() {

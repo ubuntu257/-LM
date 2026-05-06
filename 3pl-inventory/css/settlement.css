@@ -1,0 +1,22 @@
+/* 3PL - Settlement Styles */
+.settlement-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+}
+.settlement-summary-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px;
+}
+.summary-card {
+  background: var(--bg-card); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); padding: 24px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.summary-title { font-size: 0.9rem; color: var(--text-secondary); }
+.summary-value { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); }
+.summary-card.total-sales .summary-value { color: var(--color-outbound); }
+.summary-card.total-settlement .summary-value { color: #eab308; }
+.summary-card.total-margin .summary-value { color: var(--color-inbound); }
+
+@media (max-width: 768px) {
+  .settlement-summary-grid { grid-template-columns: 1fr; }
+}
