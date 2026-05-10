@@ -61,7 +61,15 @@ const App = {
       }
     }
 
-    // Show/hide admin-only nav items
+    // 관리자/화주 메뉴 분기
+    document.querySelectorAll('.admin-menu').forEach(el => {
+      el.style.display = isAdmin ? '' : 'none';
+    });
+    document.querySelectorAll('.client-menu').forEach(el => {
+      el.style.display = isAdmin ? 'none' : '';
+    });
+
+    // Show/hide legacy admin-only nav items
     document.querySelectorAll('.admin-only').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
     });
@@ -83,6 +91,8 @@ const App = {
       inventory: { title:'재고 관리', desc:'제품별 현재 재고를 확인합니다' },
       history: { title:'입출고 이력', desc:'입고 및 출고 내역을 조회합니다' },
       requests: { title:'출고 요청 관리', desc:'화주의 출고 요청을 확인하고 처리합니다' },
+      'outbound-new': { title:'출고요청 등록', desc:'새로운 출고 요청서를 작성합니다' },
+      'my-requests': { title:'나의 출고요청', desc:'내가 접수한 출고 요청 내역을 확인합니다' },
       settlements: { title:'정산 관리', desc:'기간별 판매(출고) 내역에 따른 정산 금액을 확인합니다' },
       settings: { title:'설정', desc:'시스템 설정을 관리합니다' }
     };
@@ -96,6 +106,8 @@ const App = {
     else if (page === 'inventory') Inventory.render(uid);
     else if (page === 'history') History.render(uid);
     else if (page === 'requests') Requests.render(uid);
+    else if (page === 'outbound-new') Outbound.renderNewForm();
+    else if (page === 'my-requests') Outbound.renderMyRequests();
     else if (page === 'settlements') Settlement.render(uid);
     else if (page === 'settings') this.renderSettings();
   },

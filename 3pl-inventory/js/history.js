@@ -82,7 +82,8 @@ const History = {
 
   refreshTable(companyId) {
     const user = DB.getCurrentUser();
-    const isAdmin = user?.role === 'admin';
+    if (!user) return;
+    const isAdmin = user.role === 'admin';
     const effectiveId = (isAdmin && this.companyFilter !== 'all') ? this.companyFilter : user.id;
     let txns = DB.getTransactions(effectiveId);
 
@@ -226,7 +227,8 @@ const History = {
 
   downloadExcel() {
     const user = DB.getCurrentUser();
-    const isAdmin = user?.role === 'admin';
+    if (!user) return;
+    const isAdmin = user.role === 'admin';
     const effectiveId = (isAdmin && this.companyFilter !== 'all') ? this.companyFilter : user.id;
     let txns = DB.getTransactions(effectiveId);
 

@@ -104,9 +104,19 @@
             <i data-lucide="clock"></i>
             <span>입출고 이력</span>
           </div>
-          <div class="nav-item" data-page="requests" onclick="App.navigate('requests')">
-            <i data-lucide="send"></i>
+          <!-- 관리자 전용 -->
+          <div class="nav-item admin-menu" data-page="requests" onclick="App.navigate('requests')">
+            <i data-lucide="list-checks"></i>
             <span>출고 요청 관리</span>
+          </div>
+          <!-- 화주 전용 -->
+          <div class="nav-item client-menu" data-page="outbound-new" onclick="App.navigate('outbound-new')">
+            <i data-lucide="send"></i>
+            <span>출고요청 등록</span>
+          </div>
+          <div class="nav-item client-menu" data-page="my-requests" onclick="App.navigate('my-requests')">
+            <i data-lucide="clipboard-list"></i>
+            <span>나의 출고요청</span>
           </div>
           <div class="nav-item" data-page="settlements" onclick="App.navigate('settlements')">
             <i data-lucide="file-spreadsheet"></i>
@@ -157,6 +167,8 @@
         <div class="page-content" id="page-inventory" style="display:none"></div>
         <div class="page-content" id="page-history" style="display:none"></div>
         <div class="page-content" id="page-requests" style="display:none"></div>
+        <div class="page-content" id="page-outbound-new" style="display:none"></div>
+        <div class="page-content" id="page-my-requests" style="display:none"></div>
         <div class="page-content" id="page-settlements" style="display:none"></div>
         <div class="page-content" id="page-settings" style="display:none"></div>
       </div>
@@ -170,9 +182,10 @@
   <script src="js/dashboard.js"></script>
   <script src="js/inventory.js"></script>
   <script src="js/history.js"></script>
-  <script src="js/requests.js?v=6"></script>
+  <script src="js/requests.js?v=7"></script>
+  <script src="js/outbound.js?v=1"></script>
   <script src="js/settlement.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=2"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

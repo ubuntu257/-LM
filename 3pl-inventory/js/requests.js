@@ -7,9 +7,7 @@ const Requests = {
   render(companyId) {
     const page = document.getElementById('page-requests');
     const user = DB.getCurrentUser();
-    if (!user) return; // 세션 없으면 렌더 안 함
-
-    const isAdmin = user.role === 'admin';
+    const isAdmin = user?.role === 'admin';
     const effectiveId = (isAdmin && this.companyFilter !== 'all') ? this.companyFilter : user.id;
 
     if (!isAdmin) {
@@ -87,8 +85,7 @@ const Requests = {
 
   refreshTable() {
     const user = DB.getCurrentUser();
-    if (!user) return;
-    const isAdmin = user.role === 'admin';
+    const isAdmin = user?.role === 'admin';
     const effectiveId = (isAdmin && this.companyFilter !== 'all') ? this.companyFilter : user.id;
     let reqs = DB.getRequests(effectiveId);
 
@@ -238,12 +235,18 @@ const Requests = {
   },
 
   showCreateModal() {
+    if (this.currentProducts.length === 0) {
+      alert('출고를 요청할 제품이 없습니다.\n관리자에게 제품 등록을 먼저 요청해 주세요.');
+      return;
+    }
+    
     document.getElementById('reqCreateForm').reset();
     document.getElementById('reqId').value = '';
     document.getElementById('reqModalTitle').innerText = '새 출고 요청서 작성';
     document.getElementById('reqSubmitBtn').innerText = '출고 요청하기';
-    document.getElementById('reqItemsContainer').innerHTML = '';
-    this.addReqItemRow();
+    document.getElementById('reqItemsContainer').innerHTML = ''; // Clear rows
+    this.addReqItemRow(); // Add default row
+    
     document.getElementById('reqCreateModalOverlay').classList.add('active');
   },
 
