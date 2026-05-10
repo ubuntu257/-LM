@@ -396,10 +396,6 @@ const Requests = {
     this.refreshTable();
     alert('삭제되었습니다.');
   },
-    if (!confirm('이 요청을 승인하시겠습니까?\\n승인 후 출고 명세서를 출력할 수 있습니다.')) return;
-    DB.updateRequest(id, { status: 'approved' });
-    this.refreshTable();
-  },
 
   showCompleteModal(id) {
     document.getElementById('completeReqId').value = id;
