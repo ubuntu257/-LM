@@ -448,7 +448,6 @@ const Requests = {
     const r = reqs.find(x => x.id === id);
     if (!r) return;
 
-    const d = new Date(r.created_at);
     const dateStr = UI.fmtDatetime(r.created_at);
     const reqNum = 'REQ-' + r.id.slice(0, 8).toUpperCase();
 
@@ -461,67 +460,83 @@ const Requests = {
         <td style="border:1px solid #000;padding:10px;text-align:center">${item.product?.unit || '개'}</td>
       </tr>`).join('');
 
-    const printArea = document.getElementById('printArea');
-    printArea.innerHTML = `
-      <div style="padding:40px;font-family:sans-serif;max-width:800px;margin:0 auto;color:#000">
-        <h1 style="text-align:center;font-size:26px;margin-bottom:36px;border-bottom:2px solid #000;padding-bottom:16px">
-          출고 명세서
-        </h1>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-          <tr>
-            <th style="border:1px solid #000;padding:10px;background:#f0f0f0;width:15%">요청번호</th>
-            <td style="border:1px solid #000;padding:10px;width:35%">${reqNum}</td>
-            <th style="border:1px solid #000;padding:10px;background:#f0f0f0;width:15%">요청일시</th>
-            <td style="border:1px solid #000;padding:10px;width:35%">${dateStr}</td>
-          </tr>
-          <tr>
-            <th style="border:1px solid #000;padding:10px;background:#f0f0f0">요청업체</th>
-            <td style="border:1px solid #000;padding:10px">${r.company?.company_name || ''}</td>
-            <th style="border:1px solid #000;padding:10px;background:#f0f0f0">연락처</th>
-            <td style="border:1px solid #000;padding:10px">${r.recipient_phone}</td>
-          </tr>
-        </table>
-        <div style="border:2px solid #000;margin-bottom:24px">
-          <h3 style="margin:0;padding:10px;background:#f0f0f0;border-bottom:1px solid #000;text-align:center">배송 정보</h3>
-          <table style="width:100%;border-collapse:collapse">
-            <tr>
-              <th style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;width:20%;background:#f9f9f9">수령인</th>
-              <td style="border-bottom:1px solid #ccc;border-right:1px solid #ccc;padding:10px;width:30%">${r.recipient_name}</td>
-              <th style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;width:20%;background:#f9f9f9">연락처</th>
-              <td style="border-bottom:1px solid #ccc;padding:10px">${r.recipient_phone}</td>
-            </tr>
-            <tr>
-              <th style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;background:#f9f9f9">배송주소</th>
-              <td colspan="3" style="border-bottom:1px solid #ccc;padding:10px">${r.address}</td>
-            </tr>
-            <tr>
-              <th style="border-right:1px solid #ccc;padding:10px;background:#f9f9f9">배송메시지</th>
-              <td colspan="3" style="padding:10px">${r.message || '없음'}</td>
-            </tr>
-          </table>
-        </div>
-        <h3 style="margin-bottom:10px">출고 품목</h3>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:40px">
-          <thead>
-            <tr>
-              <th style="border:1px solid #000;padding:10px;background:#f0f0f0;width:8%">No.</th>
-              <th style="border:1px solid #000;padding:10px;background:#f0f0f0">제품명</th>
-              <th style="border:1px solid #000;padding:10px;background:#f0f0f0;width:15%">SKU</th>
-              <th style="border:1px solid #000;padding:10px;background:#f0f0f0;width:12%">수량</th>
-              <th style="border:1px solid #000;padding:10px;background:#f0f0f0;width:10%">단위</th>
-            </tr>
-          </thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-        <div style="text-align:right;margin-top:48px">
-          <p>출고 담당자 확인 : ________________________ (서명)</p>
-        </div>
-      </div>`;
+    const html = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>출고 명세서 ${reqNum}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Malgun Gothic', sans-serif; color:#000; background:#fff; padding:40px; }
+  h1 { text-align:center; font-size:24px; margin-bottom:32px; padding-bottom:14px; border-bottom:2px solid #000; }
+  table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+  th { background:#f0f0f0; }
+  .sign { text-align:right; margin-top:48px; font-size:14px; }
+  @media print {
+    body { padding:20px; }
+    button { display:none; }
+  }
+</style>
+</head>
+<body>
+  <h1>출고 명세서</h1>
+  <table>
+    <tr>
+      <th style="border:1px solid #000;padding:10px;width:15%">요청번호</th>
+      <td style="border:1px solid #000;padding:10px;width:35%">${reqNum}</td>
+      <th style="border:1px solid #000;padding:10px;width:15%">요청일시</th>
+      <td style="border:1px solid #000;padding:10px">${dateStr}</td>
+    </tr>
+    <tr>
+      <th style="border:1px solid #000;padding:10px">요청업체</th>
+      <td style="border:1px solid #000;padding:10px">${r.company?.company_name || ''}</td>
+      <th style="border:1px solid #000;padding:10px">담당자</th>
+      <td style="border:1px solid #000;padding:10px">${r.recipient_phone}</td>
+    </tr>
+  </table>
 
-    const orig = document.body.innerHTML;
-    document.body.innerHTML = printArea.innerHTML;
-    window.print();
-    document.body.innerHTML = orig;
-    App.init();
+  <div style="border:2px solid #000;margin-bottom:20px">
+    <div style="padding:10px;background:#f0f0f0;border-bottom:1px solid #000;font-weight:bold;text-align:center">배송 정보</div>
+    <table>
+      <tr>
+        <th style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;width:18%;background:#f9f9f9">수령인</th>
+        <td style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;width:32%">${r.recipient_name}</td>
+        <th style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;width:18%;background:#f9f9f9">연락처</th>
+        <td style="border-bottom:1px solid #ccc;padding:10px">${r.recipient_phone}</td>
+      </tr>
+      <tr>
+        <th style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;padding:10px;background:#f9f9f9">배송주소</th>
+        <td colspan="3" style="border-bottom:1px solid #ccc;padding:10px">${r.address}</td>
+      </tr>
+      <tr>
+        <th style="border-right:1px solid #ccc;padding:10px;background:#f9f9f9">배송메시지</th>
+        <td colspan="3" style="padding:10px">${r.message || '없음'}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="font-weight:bold;margin-bottom:8px">출고 품목</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="border:1px solid #000;padding:10px;width:8%">No.</th>
+        <th style="border:1px solid #000;padding:10px">제품명</th>
+        <th style="border:1px solid #000;padding:10px;width:15%">SKU</th>
+        <th style="border:1px solid #000;padding:10px;width:12%">수량</th>
+        <th style="border:1px solid #000;padding:10px;width:10%">단위</th>
+      </tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+
+  <div class="sign">출고 담당자 확인 : ________________________ (서명)</div>
+
+  <script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+    const w = window.open('', '_blank', 'width=900,height=700');
+    w.document.write(html);
+    w.document.close();
   },
 };
