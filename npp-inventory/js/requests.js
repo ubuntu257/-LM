@@ -36,11 +36,25 @@ const Requests = {
             </select>
             ` : ''}
           </div>
-          ${isClient ? `
-          <button class="btn btn-primary" onclick="Requests.openCreateModal()">
-            <i data-lucide="plus"></i>출고 요청서 작성
-          </button>
-          ` : ''}
+          <div class="toolbar-actions">
+            <button class="btn btn-secondary btn-sm" onclick="Requests.downloadExcel()">
+              <i data-lucide="file-down"></i>엑셀 다운로드
+            </button>
+            ${isAdmin ? `
+            <button class="btn btn-secondary btn-sm" onclick="Requests.downloadTrackingTemplate()">
+              <i data-lucide="download"></i>송장 양식
+            </button>
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer">
+              <i data-lucide="upload"></i>송장 업로드
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="Requests.handleTrackingUpload(event)">
+            </label>
+            ` : ''}
+            ${isClient ? `
+            <button class="btn btn-primary btn-sm" onclick="Requests.openCreateModal()">
+              <i data-lucide="plus"></i>출고 요청서 작성
+            </button>
+            ` : ''}
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -475,6 +489,118 @@ const Requests = {
     } catch (err) {
       UI.toast('오류: ' + err.message, 'danger');
     }
+  },
+
+  async downloadExcel() {
+    const companyId = Auth.isClient() ? Auth.profile.id : (this.filterCompany || undefined);
+    const status = this.filterStatus === 'all' ? undefined : this.filterStatus;
+    const reqs = await DB.getRequests({ companyId, status });
+
+    const rows = [];
+    reqs.forEach(r => {
+      const reqNum = 'REQ-' + r.id.slice(0,8).toUpperCase();
+      const statusLabel = { pending:'대기중', confirmed:'확인완료', completed:'출고완료' };
+      (r.items || []).forEach((item, idx) => {
+        rows.push({
+          '요청번호': reqNum,
+          '요청ID(전체)': r.id,
+          '요청일시': UI.fmtDatetime(r.created_at),
+          '업체명': r.company?.company_name || '',
+          '상태': statusLabel[r.status] || r.status,
+          '수령인': r.recipient_name,
+          '연락처': r.recipient_phone,
+          '배송주소': r.address,
+          '배송메시지': r.message || '',
+          '송장번호': r.tracking_number || '',
+          '제품명': item.product?.name || '',
+          'SKU': item.product?.sku || '',
+          '수량': item.quantity,
+          '단위': item.product?.unit || '',
+        });
+      });
+      if ((r.items || []).length === 0) {
+        rows.push({
+          '요청번호': reqNum, '요청ID(전체)': r.id,
+          '요청일시': UI.fmtDatetime(r.created_at),
+          '업체명': r.company?.company_name || '',
+          '상태': statusLabel[r.status] || r.status,
+          '수령인': r.recipient_name, '연락처': r.recipient_phone,
+          '배송주소': r.address, '배송메시지': r.message || '',
+          '송장번호': r.tracking_number || '',
+          '제품명': '', 'SKU': '', '수량': '', '단위': '',
+        });
+      }
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:14},{wch:38},{wch:18},{wch:16},{wch:10},{wch:12},{wch:14},{wch:28},{wch:18},{wch:18},{wch:22},{wch:12},{wch:8},{wch:6}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '출고요청내역');
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `출고요청내역_${today}.xlsx`);
+  },
+
+  async downloadTrackingTemplate() {
+    // 확인완료 or 전체 중 송장번호 없는 것
+    const companyId = Auth.isClient() ? Auth.profile.id : (this.filterCompany || undefined);
+    const reqs = await DB.getRequests({ companyId, status: 'confirmed' });
+
+    const rows = reqs.map(r => ({
+      '요청번호(REQ-)': 'REQ-' + r.id.slice(0,8).toUpperCase(),
+      '요청ID(수정금지)': r.id,
+      '업체명': r.company?.company_name || '',
+      '수령인': r.recipient_name,
+      '배송주소': r.address,
+      '품목': (r.items||[]).map(i => `${i.product?.name||''} x${i.quantity}`).join(', '),
+      '송장번호': r.tracking_number || '',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:16},{wch:38},{wch:16},{wch:12},{wch:28},{wch:32},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '송장번호입력');
+    XLSX.writeFile(wb, `송장번호_입력양식_${new Date().toISOString().slice(0,10)}.xlsx`);
+  },
+
+  async handleTrackingUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+
+        let success = 0;
+        const errors = [];
+
+        for (const [i, row] of rows.entries()) {
+          const lineNum = i + 2;
+          const requestId = String(row['요청ID(수정금지)'] || row['요청ID'] || '').trim();
+          const tracking = String(row['송장번호'] || '').trim();
+
+          if (!requestId) { errors.push(`${lineNum}행: 요청ID 없음`); continue; }
+          if (!tracking) { errors.push(`${lineNum}행: 송장번호 없음`); continue; }
+
+          try {
+            await DB.updateTrackingNumber(requestId, tracking);
+            success++;
+          } catch(err) {
+            errors.push(`${lineNum}행 오류: ${err.message}`);
+          }
+        }
+
+        const msg = `✅ 송장번호 ${success}건 업데이트${errors.length > 0 ? `\n\n⚠️ 오류 ${errors.length}건:\n` + errors.slice(0,10).join('\n') : ''}`;
+        alert(msg);
+        await this._load();
+      } catch(err) {
+        alert('업로드 오류: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   },
 
   async openDetailModal(id) {

@@ -222,6 +222,25 @@ const DB = {
     return data;
   },
 
+  // ── Tracking Numbers ─────────────────────
+  async updateTrackingNumber(requestId, trackingNumber) {
+    const { error } = await _sb
+      .from('outbound_requests')
+      .update({ tracking_number: trackingNumber })
+      .eq('id', requestId);
+    if (error) throw error;
+  },
+
+  async getRequestById(id) {
+    const { data, error } = await _sb
+      .from('outbound_requests')
+      .select(`*, company:user_profiles!outbound_requests_company_id_fkey(company_name), items:outbound_request_items(*, product:products(name, sku, unit))`)
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   // ── Dashboard Stats ──────────────────────
   async getDashboardStats(companyIds) {
     // 제품 수 및 재고 현황

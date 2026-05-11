@@ -37,10 +37,17 @@ const Inventory = {
               value="${this.filterSearch}" style="width:200px">
           </div>
           <div class="toolbar-actions">
+            <button class="btn btn-secondary btn-sm" onclick="Inventory.downloadExcel()">
+              <i data-lucide="file-down"></i>엑셀 다운로드
+            </button>
             ${isAdmin ? `
             <button class="btn btn-secondary btn-sm" onclick="Inventory.downloadTemplate()">
-              <i data-lucide="download"></i>양식 다운로드
+              <i data-lucide="download"></i>업로드 양식
             </button>
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer">
+              <i data-lucide="upload"></i>엑셀 업로드
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="Inventory.handleUpload(event)">
+            </label>
             <button class="btn btn-primary btn-sm" onclick="Inventory.openAddModal()">
               <i data-lucide="plus"></i>제품 추가
             </button>
@@ -291,8 +298,102 @@ const Inventory = {
       { '업체코드(필수)': 'KE2024', '제품명(필수)': '예시 제품', 'SKU': 'NPP-001', '매입단가': 15000, '현재재고': 100, '최소재고': 20, '단위': '개', '보관위치': 'A구역 1번' },
     ];
     const ws = XLSX.utils.json_to_sheet(sample);
+    ws['!cols'] = [{wch:14},{wch:24},{wch:14},{wch:12},{wch:12},{wch:12},{wch:8},{wch:16}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '제품등록양식');
-    XLSX.writeFile(wb, 'product_template.xlsx');
+    XLSX.writeFile(wb, 'product_upload_template.xlsx');
+  },
+
+  async downloadExcel() {
+    const companyId = Auth.isClient() ? Auth.profile.id : (this.filterCompany || undefined);
+    const products = await DB.getProducts(companyId);
+
+    const rows = products.map(p => ({
+      '업체코드': p.company?.company_name ? '' : '',  // filled below
+      '업체명': p.company?.company_name || '',
+      '제품명': p.name,
+      'SKU': p.sku || '',
+      '현재재고': p.current_stock,
+      '최소재고': p.min_stock,
+      '단위': p.unit,
+      '매입단가(원)': p.purchase_price,
+      '보관위치': p.location || '',
+      '상태': p.current_stock <= p.min_stock ? '재고부족' : '정상',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:12},{wch:18},{wch:24},{wch:14},{wch:10},{wch:10},{wch:8},{wch:14},{wch:16},{wch:8}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '재고현황');
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `재고현황_${today}.xlsx`);
+  },
+
+  async handleUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const companies = await DB.getClients();
+    const companyMap = {};
+    companies.forEach(c => { companyMap[c.company_code.toUpperCase()] = c.id; });
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+
+        let created = 0, updated = 0;
+        const errors = [];
+
+        for (const [i, row] of rows.entries()) {
+          const lineNum = i + 2;
+          const code = String(row['업체코드(필수)'] || row['업체코드'] || '').toUpperCase().trim();
+          const name = String(row['제품명(필수)'] || row['제품명'] || '').trim();
+          const sku  = String(row['SKU'] || '').trim();
+
+          if (!code) { errors.push(`${lineNum}행: 업체코드 누락`); continue; }
+          if (!companyMap[code]) { errors.push(`${lineNum}행: 업체코드 "${code}" 없음`); continue; }
+          if (!name) { errors.push(`${lineNum}행: 제품명 누락`); continue; }
+
+          const companyId = companyMap[code];
+          const productData = {
+            company_id: companyId,
+            name,
+            sku,
+            purchase_price: parseFloat(row['매입단가'] || 0),
+            current_stock: parseInt(row['현재재고'] || 0),
+            min_stock: parseInt(row['최소재고'] || 0),
+            unit: String(row['단위'] || '개').trim(),
+            location: String(row['보관위치'] || '').trim(),
+          };
+
+          try {
+            // SKU 있으면 중복 확인 후 업데이트
+            if (sku) {
+              const existing = this.products.find(p => p.sku?.toUpperCase() === sku.toUpperCase() && p.company_id === companyId);
+              if (existing) {
+                await DB.updateProduct(existing.id, productData);
+                updated++;
+                continue;
+              }
+            }
+            await DB.createProduct(productData);
+            created++;
+          } catch(err) {
+            errors.push(`${lineNum}행 오류: ${err.message}`);
+          }
+        }
+
+        const msg = `✅ 신규 ${created}건 등록, 수정 ${updated}건${errors.length > 0 ? `\n\n⚠️ 오류 ${errors.length}건:\n` + errors.slice(0,10).join('\n') : ''}`;
+        alert(msg);
+        await this.render();
+      } catch(err) {
+        alert('업로드 오류: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   },
 };

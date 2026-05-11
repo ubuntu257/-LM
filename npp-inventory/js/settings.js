@@ -23,6 +23,21 @@ const Settings = {
 
         <!-- 화주 업체 탭 -->
         <div id="tab-companies" class="tab-content" style="${this.activeTab !== 'companies' ? 'display:none' : ''}">
+          <div class="toolbar" style="margin-bottom:12px">
+            <div class="toolbar-filters"></div>
+            <div class="toolbar-actions">
+              <button class="btn btn-secondary btn-sm" onclick="Settings.downloadCompanies()">
+                <i data-lucide="file-down"></i>업체목록 다운로드
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="Settings.downloadCompanyTemplate()">
+                <i data-lucide="download"></i>업로드 양식
+              </button>
+              <label class="btn btn-secondary btn-sm" style="cursor:pointer">
+                <i data-lucide="upload"></i>업체정보 업로드
+                <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="Settings.handleCompanyUpload(event)">
+              </label>
+            </div>
+          </div>
           <div class="table-wrap">
             <div class="table-overflow">
               <table class="data-table">
@@ -378,6 +393,91 @@ const Settings = {
     `).join('');
 
     UI.openModal('managerPermModal');
+  },
+
+  downloadCompanyTemplate() {
+    const sample = [
+      { '업체코드(수정금지)': 'KE2024', '업체명': '예시업체', '담당자': '홍길동', '연락처': '010-1234-5678', '사업자번호': '123-45-67890', '주소': '서울시 강남구', '계좌번호': '국민은행 123-456-789', '계약일': '2025-01-01' },
+    ];
+    const ws = XLSX.utils.json_to_sheet(sample);
+    ws['!cols'] = [{wch:16},{wch:20},{wch:12},{wch:16},{wch:16},{wch:28},{wch:28},{wch:12}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '업체정보양식');
+    XLSX.writeFile(wb, 'company_upload_template.xlsx');
+  },
+
+  downloadCompanies() {
+    const clients = this.profiles.filter(p => p.role === 'client');
+    const rows = clients.map(c => ({
+      '업체코드(수정금지)': c.company_code,
+      '업체명': c.company_name,
+      '담당자': c.contact_name || '',
+      '연락처': c.contact_phone || '',
+      '이메일': c.email || '',
+      '사업자번호': c.business_number || '',
+      '주소': c.address || '',
+      '계좌번호': c.account_number || '',
+      '계약일': c.contract_date || '',
+      '활성여부': c.is_active ? '활성' : '비활성',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:16},{wch:20},{wch:12},{wch:16},{wch:22},{wch:16},{wch:28},{wch:28},{wch:12},{wch:8}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '화주목록');
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `화주목록_${today}.xlsx`);
+  },
+
+  async handleCompanyUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+
+        const codeMap = {};
+        this.profiles.forEach(p => { codeMap[p.company_code.toUpperCase()] = p.id; });
+
+        let updated = 0;
+        const errors = [];
+
+        for (const [i, row] of rows.entries()) {
+          const lineNum = i + 2;
+          const code = String(row['업체코드(수정금지)'] || row['업체코드'] || '').toUpperCase().trim();
+          if (!code) { errors.push(`${lineNum}행: 업체코드 없음`); continue; }
+          const id = codeMap[code];
+          if (!id) { errors.push(`${lineNum}행: "${code}" 존재하지 않음 (신규 등록은 계정추가 탭 사용)`); continue; }
+
+          const updates = {};
+          if (row['업체명']) updates.company_name = String(row['업체명']).trim();
+          if (row['담당자'] !== undefined) updates.contact_name = String(row['담당자']).trim();
+          if (row['연락처'] !== undefined) updates.contact_phone = String(row['연락처']).trim();
+          if (row['사업자번호'] !== undefined) updates.business_number = String(row['사업자번호']).trim();
+          if (row['주소'] !== undefined) updates.address = String(row['주소']).trim();
+          if (row['계좌번호'] !== undefined) updates.account_number = String(row['계좌번호']).trim();
+          if (row['계약일']) updates.contract_date = String(row['계약일']).trim();
+
+          try {
+            await DB.updateProfile(id, updates);
+            updated++;
+          } catch(err) {
+            errors.push(`${lineNum}행 오류: ${err.message}`);
+          }
+        }
+
+        const msg = `✅ ${updated}개 업체 정보 업데이트${errors.length > 0 ? `\n\n⚠️ 오류:\n` + errors.slice(0,10).join('\n') : ''}`;
+        alert(msg);
+        await this.render();
+      } catch(err) {
+        alert('업로드 오류: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   },
 
   async savePermissions() {
