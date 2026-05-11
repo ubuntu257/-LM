@@ -531,12 +531,24 @@ const Requests = {
 
   <div class="sign">출고 담당자 확인 : ________________________ (서명)</div>
 
-  <script>window.onload = function(){ window.print(); }<\/script>
 </body>
 </html>`;
 
-    const w = window.open('', '_blank', 'width=900,height=700');
-    w.document.write(html);
-    w.document.close();
+    // iframe으로 인쇄 (팝업 차단 우회)
+    let iframe = document.getElementById('_printFrame');
+    if (iframe) iframe.remove();
+    iframe = document.createElement('iframe');
+    iframe.id = '_printFrame';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:none';
+    document.body.appendChild(iframe);
+
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 600);
   },
 };
