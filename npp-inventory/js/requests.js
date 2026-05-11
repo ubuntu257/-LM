@@ -127,7 +127,7 @@ const Requests = {
       if (isAdmin) {
         if (r.status === 'pending') {
           actions = `
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <div style="display:flex;gap:6px;flex-wrap:wrap" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-success" onclick="Requests.confirm('${r.id}')">
                 <i data-lucide="check"></i>확인완료
               </button>
@@ -140,18 +140,20 @@ const Requests = {
             </div>`;
         } else if (r.status === 'confirmed') {
           actions = `
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <div style="display:flex;gap:6px;flex-wrap:wrap" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-secondary" onclick="Requests.printSpec('${r.id}')">
                 <i data-lucide="printer"></i>명세서
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="Requests.openEditModal('${r.id}')">
+                <i data-lucide="pencil"></i>수정
               </button>
               <button class="btn btn-sm btn-primary" onclick="Requests.openCompleteModal('${r.id}')">
                 <i data-lucide="package-check"></i>출고완료
               </button>
             </div>`;
         } else {
-          // 출고완료 — 관리자는 명세서 보기 + 수정 가능
           actions = `
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center" onclick="event.stopPropagation()">
               <span style="font-size:0.78rem;color:var(--text-3);white-space:nowrap">${r.tracking_number ? '송장: ' + r.tracking_number : '송장없음'}</span>
               <button class="btn btn-sm btn-secondary" onclick="Requests.printSpec('${r.id}')">
                 <i data-lucide="printer"></i>명세서
@@ -164,7 +166,7 @@ const Requests = {
       } else if (isClient) {
         if (r.status === 'pending') {
           actions = `
-            <div style="display:flex;gap:6px">
+            <div style="display:flex;gap:6px" onclick="event.stopPropagation()">
               <button class="btn btn-sm btn-secondary" onclick="Requests.openEditModal('${r.id}')">
                 <i data-lucide="pencil"></i>수정
               </button>
@@ -173,28 +175,16 @@ const Requests = {
               </button>
             </div>`;
         } else if (r.status === 'confirmed') {
-          actions = `
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <span style="font-size:0.78rem;color:var(--amber)">확인완료 (수정불가)</span>
-              <button class="btn btn-sm btn-secondary" onclick="Requests.openDetailModal('${r.id}')">
-                <i data-lucide="eye"></i>상세
-              </button>
-            </div>`;
+          actions = `<span style="font-size:0.78rem;color:var(--amber)">확인완료 (수정불가)</span>`;
         } else {
-          actions = `
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <span style="font-size:0.78rem;color:var(--text-3);white-space:nowrap">송장: ${r.tracking_number || '-'}</span>
-              <button class="btn btn-sm btn-secondary" onclick="Requests.openDetailModal('${r.id}')">
-                <i data-lucide="eye"></i>상세
-              </button>
-            </div>`;
+          actions = `<span style="font-size:0.78rem;color:var(--green)">출고완료 ${r.tracking_number ? '| 송장: ' + r.tracking_number : ''}</span>`;
         }
       } else {
-        // manager
-        actions = '-';
+        // manager — 행 클릭으로 상세 열람
+        actions = '<span style="font-size:0.78rem;color:var(--text-3)">클릭하여 상세보기</span>';
       }
 
-      return `<tr>
+      return `<tr style="cursor:pointer" onclick="Requests.openDetailModal('${r.id}')">
         <td style="color:var(--text-3);font-size:0.8rem;white-space:nowrap">${UI.fmtDatetime(r.created_at)}</td>
         ${canViewAll ? `<td>
           <div style="display:flex;align-items:center;gap:7px">
@@ -488,7 +478,8 @@ const Requests = {
   },
 
   async openDetailModal(id) {
-    const reqs = await DB.getRequests({ companyId: Auth.isClient() ? Auth.profile.id : undefined });
+    const companyId = Auth.isClient() ? Auth.profile.id : undefined;
+    const reqs = await DB.getRequests({ companyId });
     const r = reqs.find(x => x.id === id);
     if (!r) return;
 
