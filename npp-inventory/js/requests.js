@@ -149,7 +149,17 @@ const Requests = {
               </button>
             </div>`;
         } else {
-          actions = `<span style="font-size:0.8rem;color:var(--text-3)">${r.tracking_number || '송장없음'}</span>`;
+          // 출고완료 — 관리자는 명세서 보기 + 수정 가능
+          actions = `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:0.78rem;color:var(--text-3);white-space:nowrap">${r.tracking_number ? '송장: ' + r.tracking_number : '송장없음'}</span>
+              <button class="btn btn-sm btn-secondary" onclick="Requests.printSpec('${r.id}')">
+                <i data-lucide="printer"></i>명세서
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="Requests.openEditModal('${r.id}')">
+                <i data-lucide="pencil"></i>수정
+              </button>
+            </div>`;
         }
       } else if (isClient) {
         if (r.status === 'pending') {
@@ -289,9 +299,13 @@ const Requests = {
     DB.getRequests({ companyId: Auth.isClient() ? Auth.profile.id : undefined }).then(reqs => {
       const r = reqs.find(x => x.id === id);
       if (!r) return;
-      if (r.status !== 'pending') { UI.toast('대기 중 상태에서만 수정 가능합니다', 'warning'); return; }
+      // 화주는 대기 중만 수정 가능, 관리자는 모든 상태 수정 가능
+      if (!Auth.isAdmin() && r.status !== 'pending') {
+        UI.toast('대기 중 상태에서만 수정 가능합니다', 'warning'); return;
+      }
 
-      document.getElementById('reqFormTitle').textContent = '출고 요청서 수정';
+      const statusLabel = { pending: '대기 중', confirmed: '확인완료', completed: '출고완료' };
+      document.getElementById('reqFormTitle').textContent = `출고 요청서 수정 [${statusLabel[r.status] || r.status}]`;
       document.getElementById('reqSubmitBtn').textContent = '수정 완료';
       document.getElementById('reqEditId').value = id;
       document.getElementById('reqRecipient').value = r.recipient_name;
@@ -361,20 +375,24 @@ const Requests = {
     const seen = {};
     let valid = true;
 
+    const skipStockCheck = Auth.isAdmin() && !!editId; // 관리자가 기존 요청 수정 시 재고 검증 생략
+
     rows.forEach(row => {
       const productId = row.querySelector('.req-item-product').value;
       const quantity = parseInt(row.querySelector('.req-item-qty').value) || 0;
       if (!productId || quantity <= 0) { valid = false; return; }
 
-      // 재고 확인
-      const product = this.myProducts.find(p => p.id === productId);
-      const alreadyReq = seen[productId] || 0;
-      if (product && (alreadyReq + quantity) > product.current_stock) {
-        UI.toast(`"${product.name}" 재고 부족 (현재: ${UI.fmtNum(product.current_stock)}${product.unit})`, 'danger');
-        valid = false;
-        return;
+      // 재고 확인 (관리자 수정 시 생략)
+      if (!skipStockCheck) {
+        const product = this.myProducts.find(p => p.id === productId);
+        const alreadyReq = seen[productId] || 0;
+        if (product && (alreadyReq + quantity) > product.current_stock) {
+          UI.toast(`"${product.name}" 재고 부족 (현재: ${UI.fmtNum(product.current_stock)}${product.unit})`, 'danger');
+          valid = false;
+          return;
+        }
+        seen[productId] = alreadyReq + quantity;
       }
-      seen[productId] = alreadyReq + quantity;
       items.push({ productId, quantity });
     });
 
