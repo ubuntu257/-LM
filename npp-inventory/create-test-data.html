@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>테스트 데이터 생성</title>
+<style>
+  body { font-family: sans-serif; display: flex; justify-content: center; padding: 40px 20px; margin: 0; background: #0f1117; color: #e2e8f0; }
+  .box { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 32px; width: 560px; }
+  h2 { margin: 0 0 8px; color: #fff; }
+  .sub { color: #64748b; font-size: 0.83rem; margin-bottom: 24px; }
+  label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: #94a3b8; }
+  input { width: 100%; padding: 10px 12px; border: 1px solid #2d3148; border-radius: 8px; background: #0f1117; color: #e2e8f0; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 14px; }
+  button { width: 100%; padding: 12px; background: #6366f1; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+  button:hover { background: #5457e0; }
+  button:disabled { background: #3730a3; cursor: not-allowed; }
+  .log { margin-top: 16px; background: #0f1117; border: 1px solid #2d3148; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.8rem; max-height: 320px; overflow-y: auto; line-height: 1.8; }
+  .ok { color: #86efac; }
+  .err { color: #fca5a5; }
+  .info { color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>🧪 테스트 데이터 생성</h2>
+  <p class="sub">가상 화주 3개 + 제품 9개를 자동으로 등록합니다. 사용 후 이 파일을 삭제하세요.</p>
+
+  <label>Service Role Key *</label>
+  <input id="serviceKey" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+
+  <button id="btn" onclick="createAll()">테스트 데이터 생성 시작</button>
+
+  <div class="log" id="log"><span class="info">준비 완료. 버튼을 눌러 시작하세요.</span></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://yuqucgvmptrwcyznorxy.supabase.co';
+
+const TEST_COMPANIES = [
+  { code: 'SANDLE', name: '산들바람 공예', contact: '김지수', phone: '010-1234-5678', color: '#10b981' },
+  { code: 'HALLA',  name: '한라봉 농원',   contact: '박철수', phone: '010-2345-6789', color: '#f59e0b' },
+  { code: 'SORAK',  name: '설악 도예',     contact: '이민정', phone: '010-3456-7890', color: '#6366f1' },
+];
+
+const TEST_PRODUCTS = {
+  'SANDLE': [
+    { name: '전통 매듭 열쇠고리', sku: 'SDL-001', price: 8500,  stock: 150, min_stock: 30, unit: '개' },
+    { name: '한지 조명등',        sku: 'SDL-002', price: 35000, stock: 40,  min_stock: 10, unit: '개' },
+    { name: '자수 파우치 소',     sku: 'SDL-003', price: 12000, stock: 80,  min_stock: 20, unit: '개' },
+  ],
+  'HALLA': [
+    { name: '한라봉 청 500ml',    sku: 'HLA-001', price: 18000, stock: 200, min_stock: 50, unit: '병' },
+    { name: '감귤 초콜릿 선물세트',sku: 'HLA-002', price: 25000, stock: 60,  min_stock: 20, unit: '박스' },
+    { name: '제주 말차 파우더',   sku: 'HLA-003', price: 15000, stock: 90,  min_stock: 30, unit: '봉' },
+  ],
+  'SORAK': [
+    { name: '청자 머그컵',         sku: 'SRK-001', price: 22000, stock: 55,  min_stock: 15, unit: '개' },
+    { name: '백자 미니 화분',      sku: 'SRK-002', price: 18000, stock: 30,  min_stock: 10, unit: '개' },
+    { name: '도자기 젓가락 세트',  sku: 'SRK-003', price: 14000, stock: 70,  min_stock: 20, unit: '세트' },
+  ],
+};
+
+let logEl;
+
+function log(msg, type = 'info') {
+  logEl.innerHTML += `<br><span class="${type}">${msg}</span>`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function createAll() {
+  const serviceKey = document.getElementById('serviceKey').value.trim();
+  if (!serviceKey) { alert('Service Role Key를 입력하세요'); return; }
+
+  logEl = document.getElementById('log');
+  logEl.innerHTML = '';
+  document.getElementById('btn').disabled = true;
+
+  const companyIds = {};
+
+  for (const co of TEST_COMPANIES) {
+    log(`⏳ [${co.name}] 계정 생성 중...`);
+    try {
+      // 1. auth.users 생성
+      const email = co.code.toLowerCase() + '@npp.internal';
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ email, password: 'test1234', email_confirm: true })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.msg || JSON.stringify(data));
+      const uid = data.id;
+      companyIds[co.code] = uid;
+
+      // 2. user_profiles 생성
+      const res2 = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          id: uid,
+          company_code: co.code,
+          company_name: co.name,
+          role: 'client',
+          contact_name: co.contact,
+          contact_phone: co.phone,
+          logo_color: co.color,
+        })
+      });
+      if (!res2.ok) throw new Error(await res2.text());
+
+      log(`✅ [${co.name}] 계정 생성 완료 (${email} / test1234)`, 'ok');
+    } catch(e) {
+      log(`❌ [${co.name}] 오류: ${e.message}`, 'err');
+    }
+  }
+
+  // 3. 제품 등록
+  for (const [code, products] of Object.entries(TEST_PRODUCTS)) {
+    const companyId = companyIds[code];
+    if (!companyId) { log(`⚠️ [${code}] 업체 ID 없어서 제품 스킵`, 'err'); continue; }
+
+    for (const p of products) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/products`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({
+            company_id: companyId,
+            name: p.name,
+            sku: p.sku,
+            purchase_price: p.price,
+            current_stock: p.stock,
+            min_stock: p.min_stock,
+            unit: p.unit,
+            location: 'A구역',
+          })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        log(`  📦 [${p.sku}] ${p.name} 등록 완료`, 'ok');
+      } catch(e) {
+        log(`  ❌ [${p.name}] 오류: ${e.message}`, 'err');
+      }
+    }
+  }
+
+  log('', 'info');
+  log('🎉 완료! 이제 NPP 재고관리 앱에서 확인하세요.', 'ok');
+  log('📝 화주 로그인 비밀번호는 모두 test1234 입니다.', 'info');
+  document.getElementById('btn').disabled = false;
+}
+</script>
+</body>
+</html>
