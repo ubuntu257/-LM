@@ -109,7 +109,7 @@ const DB = {
       .select(`
         *,
         product:products(name, sku, unit),
-        company:user_profiles(company_name, logo_color)
+        company:user_profiles!transactions_company_id_fkey(company_name, logo_color)
       `)
       .order('transaction_date', { ascending: false })
       .order('created_at', { ascending: false })
@@ -137,7 +137,7 @@ const DB = {
       .from('outbound_requests')
       .select(`
         *,
-        company:user_profiles(company_name, logo_color),
+        company:user_profiles!outbound_requests_company_id_fkey(company_name, logo_color),
         items:outbound_request_items(*, product:products(name, sku, unit, purchase_price))
       `)
       .order('created_at', { ascending: false });
