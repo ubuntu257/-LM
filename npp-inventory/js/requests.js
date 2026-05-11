@@ -173,9 +173,21 @@ const Requests = {
               </button>
             </div>`;
         } else if (r.status === 'confirmed') {
-          actions = '<span style="font-size:0.8rem;color:var(--amber)">확인완료 (수정불가)</span>';
+          actions = `
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:0.78rem;color:var(--amber)">확인완료 (수정불가)</span>
+              <button class="btn btn-sm btn-secondary" onclick="Requests.openDetailModal('${r.id}')">
+                <i data-lucide="eye"></i>상세
+              </button>
+            </div>`;
         } else {
-          actions = `<span style="font-size:0.8rem;color:var(--text-3)">송장: ${r.tracking_number || '-'}</span>`;
+          actions = `
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:0.78rem;color:var(--text-3);white-space:nowrap">송장: ${r.tracking_number || '-'}</span>
+              <button class="btn btn-sm btn-secondary" onclick="Requests.openDetailModal('${r.id}')">
+                <i data-lucide="eye"></i>상세
+              </button>
+            </div>`;
         }
       } else {
         // manager
@@ -280,7 +292,21 @@ const Requests = {
         </div>
       </div>` : '';
 
-    return createEditModal + completeModal;
+    const detailModal = `
+      <div class="modal-overlay" id="reqDetailModal">
+        <div class="modal" style="max-width:600px">
+          <div class="modal-header">
+            <div class="modal-title" id="reqDetailTitle">출고 요청서 상세</div>
+            <button class="btn-icon" onclick="UI.closeModal('reqDetailModal')"><i data-lucide="x"></i></button>
+          </div>
+          <div class="modal-body" id="reqDetailBody"></div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="UI.closeModal('reqDetailModal')">닫기</button>
+          </div>
+        </div>
+      </div>`;
+
+    return createEditModal + completeModal + detailModal;
   },
 
   openCreateModal() {
@@ -459,6 +485,74 @@ const Requests = {
     } catch (err) {
       UI.toast('오류: ' + err.message, 'danger');
     }
+  },
+
+  async openDetailModal(id) {
+    const reqs = await DB.getRequests({ companyId: Auth.isClient() ? Auth.profile.id : undefined });
+    const r = reqs.find(x => x.id === id);
+    if (!r) return;
+
+    const statusLabel = { pending: '대기 중', confirmed: '확인완료', completed: '출고완료' };
+    const statusColor = { pending: 'var(--text-3)', confirmed: 'var(--amber)', completed: 'var(--green)' };
+    const reqNum = 'REQ-' + r.id.slice(0, 8).toUpperCase();
+    const items = r.items || [];
+
+    document.getElementById('reqDetailTitle').textContent = `출고 요청서 상세 — ${reqNum}`;
+    document.getElementById('reqDetailBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <div class="form-label">요청번호</div>
+          <div style="font-weight:600;font-family:monospace">${reqNum}</div>
+        </div>
+        <div>
+          <div class="form-label">상태</div>
+          <span class="badge" style="background:${statusColor[r.status]}20;color:${statusColor[r.status]};border:1px solid ${statusColor[r.status]}40">
+            ${statusLabel[r.status] || r.status}
+          </span>
+        </div>
+        <div>
+          <div class="form-label">요청일시</div>
+          <div>${UI.fmtDatetime(r.created_at)}</div>
+        </div>
+        ${r.tracking_number ? `<div>
+          <div class="form-label">운송장 번호</div>
+          <div style="font-weight:600;color:var(--green)">${r.tracking_number}</div>
+        </div>` : ''}
+      </div>
+
+      <div style="background:var(--surface-2);border-radius:8px;padding:14px;margin-bottom:16px">
+        <div class="form-label" style="margin-bottom:8px">📦 배송 정보</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.88rem">
+          <div><span style="color:var(--text-3)">수령인:</span> <strong>${r.recipient_name}</strong></div>
+          <div><span style="color:var(--text-3)">연락처:</span> ${r.recipient_phone}</div>
+        </div>
+        <div style="margin-top:6px;font-size:0.88rem"><span style="color:var(--text-3)">주소:</span> ${r.address}</div>
+        ${r.message ? `<div style="margin-top:6px;font-size:0.88rem"><span style="color:var(--text-3)">메시지:</span> ${r.message}</div>` : ''}
+      </div>
+
+      <div class="form-label" style="margin-bottom:8px">출고 품목</div>
+      <table class="data-table" style="font-size:0.85rem">
+        <thead><tr>
+          <th>제품명</th><th>SKU</th><th style="text-align:center">수량</th><th style="text-align:center">단위</th>
+        </tr></thead>
+        <tbody>
+          ${items.map(item => `<tr>
+            <td class="td-main">${item.product?.name || '-'}</td>
+            <td style="color:var(--text-3);font-family:monospace;font-size:0.8rem">${item.product?.sku || '-'}</td>
+            <td style="text-align:center;font-weight:700;color:var(--amber)">${UI.fmtNum(item.quantity)}</td>
+            <td style="text-align:center;color:var(--text-3)">${item.product?.unit || '개'}</td>
+          </tr>`).join('')}
+          <tr style="border-top:2px solid var(--border)">
+            <td colspan="2" style="text-align:right;color:var(--text-3);font-size:0.82rem">합계</td>
+            <td style="text-align:center;font-weight:700;color:var(--accent)">${UI.fmtNum(items.reduce((s,i)=>s+i.quantity,0))}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    UI.openModal('reqDetailModal');
+    UI.icons();
   },
 
   async printSpec(id) {
