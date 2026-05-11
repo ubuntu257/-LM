@@ -5,72 +5,117 @@
 <title>관리자 계정 생성</title>
 <style>
   body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #0f1117; color: #e2e8f0; }
-  .box { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 32px; width: 400px; }
-  h2 { margin: 0 0 24px; color: #fff; }
+  .box { background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 32px; width: 440px; }
+  h2 { margin: 0 0 8px; color: #fff; }
+  .sub { color: #64748b; font-size: 0.83rem; margin-bottom: 24px; }
   label { display: block; margin-bottom: 4px; font-size: 0.85rem; color: #94a3b8; }
-  input { width: 100%; padding: 10px 12px; border: 1px solid #2d3148; border-radius: 8px; background: #0f1117; color: #e2e8f0; font-size: 0.95rem; box-sizing: border-box; margin-bottom: 16px; }
-  button { width: 100%; padding: 12px; background: #6366f1; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; }
+  input { width: 100%; padding: 10px 12px; border: 1px solid #2d3148; border-radius: 8px; background: #0f1117; color: #e2e8f0; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 14px; }
+  button { width: 100%; padding: 12px; background: #6366f1; color: #fff; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; }
   button:hover { background: #5457e0; }
-  #result { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 0.85rem; display: none; }
+  button:disabled { background: #3730a3; cursor: not-allowed; }
+  #result { margin-top: 16px; padding: 14px; border-radius: 8px; font-size: 0.85rem; display: none; line-height: 1.6; }
   .ok { background: #14532d; border: 1px solid #16a34a; color: #86efac; }
   .err { background: #450a0a; border: 1px solid #dc2626; color: #fca5a5; }
-  code { display: block; margin-top: 8px; padding: 8px; background: #0f1117; border-radius: 4px; font-family: monospace; font-size: 0.8rem; word-break: break-all; }
+  .tip { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 0.82rem; color: #94a3b8; line-height: 1.6; }
+  a { color: #6366f1; }
 </style>
 </head>
 <body>
 <div class="box">
   <h2>🔐 관리자 계정 생성</h2>
-  <p style="color:#64748b;font-size:0.85rem;margin-bottom:24px">이 페이지는 최초 관리자 계정 생성 후 삭제하세요.</p>
+  <p class="sub">이 페이지는 최초 1회만 사용 후 삭제하세요.</p>
 
-  <label>업체코드 (예: ADMIN)</label>
-  <input id="code" value="ADMIN" placeholder="업체코드">
+  <div class="tip">
+    <strong style="color:#e2e8f0">Service Role Key 얻는 방법:</strong><br>
+    <a href="https://supabase.com/dashboard/project/yuqucgvmptrwcyznorxy/settings/api" target="_blank">
+      Supabase → Project Settings → API
+    </a> 열고<br>
+    <strong>service_role</strong> 키 복사 후 아래 붙여넣기
+  </div>
+
+  <label>Service Role Key *</label>
+  <input id="serviceKey" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+
+  <label>업체코드 (로그인 ID)</label>
+  <input id="code" value="ADMIN">
 
   <label>비밀번호</label>
   <input id="pw" type="password" placeholder="비밀번호 (6자 이상)">
 
-  <button onclick="createAdmin()">관리자 계정 생성</button>
+  <button id="btn" onclick="createAdmin()">관리자 계정 생성</button>
 
   <div id="result"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://yuqucgvmptrwcyznorxy.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1cXVjZ3ZtcHRyd2N5em5vcnh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MTYzNDYsImV4cCI6MjA5Mzk5MjM0Nn0.FSSP5bkWS9mMnBTVgrIuCUNGFBbx4ul4qhcZ9aeowtU';
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function createAdmin() {
+  const serviceKey = document.getElementById('serviceKey').value.trim();
   const code = document.getElementById('code').value.trim();
   const pw = document.getElementById('pw').value;
-  const res = document.getElementById('result');
+  const btn = document.getElementById('btn');
 
-  if (!code || !pw || pw.length < 6) {
-    show('업체코드와 비밀번호(6자 이상)를 입력하세요.', false);
-    return;
-  }
+  if (!serviceKey) return show('Service Role Key를 입력하세요.', false);
+  if (!code) return show('업체코드를 입력하세요.', false);
+  if (!pw || pw.length < 6) return show('비밀번호는 6자 이상이어야 합니다.', false);
 
   const email = code.toLowerCase() + '@npp.internal';
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
 
   try {
-    const { data, error } = await _sb.auth.signUp({ email, password: pw });
-    if (error) throw error;
-
-    const uid = data.user?.id;
-    if (!uid) throw new Error('UID를 받지 못했습니다');
-
-    // user_profiles에 관리자로 등록
-    const { error: err2 } = await _sb.from('user_profiles').insert({
-      id: uid,
-      company_code: code.toUpperCase(),
-      company_name: '관리자',
-      role: 'admin',
-      logo_color: '#6366f1',
+    // 1. Admin API로 유저 생성 (이메일 인증 없이 즉시 생성)
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        email,
+        password: pw,
+        email_confirm: true,  // 이메일 인증 건너뜀
+        user_metadata: { company_code: code.toUpperCase(), role: 'admin' }
+      })
     });
-    if (err2) throw err2;
 
-    show(`✅ 성공! UID: ${uid}\n이메일: ${email}\n\n이제 이 파일(create-admin.html)을 삭제하고 메인 페이지에서 로그인하세요.`, true);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.msg || JSON.stringify(data));
+
+    const uid = data.id;
+    if (!uid) throw new Error('UID를 받지 못했습니다: ' + JSON.stringify(data));
+
+    // 2. user_profiles에 관리자로 등록
+    const res2 = await fetch(`${SUPABASE_URL}/rest/v1/user_profiles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        id: uid,
+        company_code: code.toUpperCase(),
+        company_name: '관리자',
+        role: 'admin',
+        logo_color: '#6366f1',
+      })
+    });
+
+    if (!res2.ok) {
+      const e = await res2.text();
+      throw new Error('프로필 저장 오류: ' + e);
+    }
+
+    show(`✅ 성공!\n\n로그인 정보:\n• 업체코드: ${code.toUpperCase()}\n• 비밀번호: 방금 입력한 비밀번호\n\n이 파일을 삭제하고 메인 페이지에서 로그인하세요.`, true);
   } catch (e) {
     show('오류: ' + e.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '관리자 계정 생성';
   }
 }
 
