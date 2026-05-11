@@ -234,9 +234,23 @@ const DB = {
   async getRequestById(id) {
     const { data, error } = await _sb
       .from('outbound_requests')
-      .select(`*, company:user_profiles!outbound_requests_company_id_fkey(company_name), items:outbound_request_items(*, product:products(name, sku, unit))`)
+      .select(`*, company:user_profiles!outbound_requests_company_id_fkey(company_name, logo_color), items:outbound_request_items(*, product:products(name, sku, unit))`)
       .eq('id', id)
       .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // REQ-XXXXXXXX 단축 참조번호로 조회 (첫 8자리 UUID 범위 검색)
+  async getRequestByShortRef(shortRef) {
+    const lower = shortRef.toLowerCase();
+    const { data, error } = await _sb
+      .from('outbound_requests')
+      .select(`*, company:user_profiles!outbound_requests_company_id_fkey(company_name, logo_color), items:outbound_request_items(*, product:products(name, sku, unit))`)
+      .gte('id', `${lower}-0000-0000-0000-000000000000`)
+      .lte('id', `${lower}-ffff-ffff-ffff-ffffffffffff`)
+      .limit(1)
+      .maybeSingle();
     if (error) throw error;
     return data;
   },

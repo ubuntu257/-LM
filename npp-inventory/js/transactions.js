@@ -81,6 +81,22 @@ const Transactions = {
           </div>
         </div>
 
+        <!-- 출고요청서 상세 모달 -->
+        <div class="modal-overlay" id="txnReqDetailModal">
+          <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+              <div class="modal-title" id="txnReqDetailTitle">출고요청서 상세</div>
+              <button class="btn-icon" onclick="UI.closeModal('txnReqDetailModal')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" id="txnReqDetailBody">
+              <div class="loading"><div class="spinner"></div>불러오는 중...</div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="UI.closeModal('txnReqDetailModal')">닫기</button>
+            </div>
+          </div>
+        </div>
+
         <!-- 업로드 결과 모달 -->
         <div class="modal-overlay" id="uploadResultModal">
           <div class="modal" style="max-width:480px">
@@ -141,6 +157,12 @@ const Transactions = {
 
     tbody.innerHTML = txns.map(t => {
       const isIn = t.type === 'inbound';
+      const hasReqRef = t.reference && t.reference.startsWith('REQ-');
+      const refDisplay = hasReqRef
+        ? `<span style="color:var(--accent);font-family:monospace;font-size:0.8rem;cursor:pointer;text-decoration:underline dotted"
+             onclick="Transactions.showReqDetail('${t.reference}', event)">${t.reference}</span>`
+        : `<span style="color:var(--text-3);font-size:0.8rem;font-family:monospace">${t.reference || '-'}</span>`;
+
       return `<tr>
         <td style="white-space:nowrap;color:var(--text-3);font-size:0.82rem">${t.transaction_date}</td>
         ${canViewAll ? `<td>
@@ -159,7 +181,7 @@ const Transactions = {
         <td style="font-weight:700;color:${isIn ? 'var(--green)' : 'var(--amber)'}">
           ${isIn ? '+' : '-'}${UI.fmtNum(t.quantity)}${t.product?.unit || ''}
         </td>
-        <td style="color:var(--text-3);font-size:0.8rem;font-family:monospace">${t.reference || '-'}</td>
+        <td>${refDisplay}</td>
         <td style="color:var(--text-3);font-size:0.82rem">${t.note || '-'}</td>
       </tr>`;
     }).join('');
@@ -262,6 +284,93 @@ const Transactions = {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '입출고양식');
     XLSX.writeFile(wb, 'transaction_upload_template.xlsx');
+  },
+
+  async showReqDetail(reference, event) {
+    if (event) event.stopPropagation();
+    const shortRef = reference.replace('REQ-', '').toLowerCase();
+
+    UI.openModal('txnReqDetailModal');
+    document.getElementById('txnReqDetailTitle').textContent = `출고요청서 상세 — ${reference}`;
+    document.getElementById('txnReqDetailBody').innerHTML =
+      '<div class="loading"><div class="spinner"></div>불러오는 중...</div>';
+    UI.icons();
+
+    try {
+      const r = await DB.getRequestByShortRef(shortRef);
+      if (!r) {
+        document.getElementById('txnReqDetailBody').innerHTML =
+          '<div class="alert alert-warning">출고요청서를 찾을 수 없습니다.</div>';
+        return;
+      }
+
+      const statusLabel = { pending:'대기중', confirmed:'확인완료', completed:'출고완료' };
+      const statusColor = { pending:'var(--text-3)', confirmed:'var(--amber)', completed:'var(--green)' };
+      const items = r.items || [];
+
+      document.getElementById('txnReqDetailBody').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div>
+            <div class="form-label">요청번호</div>
+            <div style="font-weight:600;font-family:monospace">${reference}</div>
+          </div>
+          <div>
+            <div class="form-label">상태</div>
+            <span style="font-weight:600;color:${statusColor[r.status]}">${statusLabel[r.status] || r.status}</span>
+          </div>
+          <div>
+            <div class="form-label">요청업체</div>
+            <div style="display:flex;align-items:center;gap:7px">
+              <div style="width:8px;height:8px;border-radius:50%;background:${r.company?.logo_color||'#6366f1'}"></div>
+              <span>${r.company?.company_name || '-'}</span>
+            </div>
+          </div>
+          <div>
+            <div class="form-label">요청일시</div>
+            <div>${UI.fmtDatetime(r.created_at)}</div>
+          </div>
+          ${r.tracking_number ? `<div style="grid-column:1/-1">
+            <div class="form-label">운송장 번호</div>
+            <div style="font-weight:700;color:var(--green);font-size:1rem">${r.tracking_number}</div>
+          </div>` : ''}
+        </div>
+
+        <div style="background:var(--surface-2);border-radius:8px;padding:14px;margin-bottom:16px">
+          <div class="form-label" style="margin-bottom:8px">📦 배송 정보</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.88rem">
+            <div><span style="color:var(--text-3)">수령인:</span> <strong>${r.recipient_name}</strong></div>
+            <div><span style="color:var(--text-3)">연락처:</span> ${r.recipient_phone}</div>
+          </div>
+          <div style="margin-top:6px;font-size:0.88rem"><span style="color:var(--text-3)">주소:</span> ${r.address}</div>
+          ${r.message ? `<div style="margin-top:4px;font-size:0.85rem;color:var(--text-3)">메시지: ${r.message}</div>` : ''}
+        </div>
+
+        <div class="form-label" style="margin-bottom:8px">출고 품목</div>
+        <table class="data-table" style="font-size:0.85rem">
+          <thead><tr>
+            <th>제품명</th><th>SKU</th>
+            <th style="text-align:center">수량</th><th style="text-align:center">단위</th>
+          </tr></thead>
+          <tbody>
+            ${items.map(item => `<tr>
+              <td class="td-main">${item.product?.name || '-'}</td>
+              <td style="color:var(--text-3);font-family:monospace;font-size:0.8rem">${item.product?.sku || '-'}</td>
+              <td style="text-align:center;font-weight:700;color:var(--amber)">${UI.fmtNum(item.quantity)}</td>
+              <td style="text-align:center;color:var(--text-3)">${item.product?.unit || '개'}</td>
+            </tr>`).join('')}
+            <tr style="border-top:2px solid var(--border)">
+              <td colspan="2" style="text-align:right;color:var(--text-3);font-size:0.82rem">합계</td>
+              <td style="text-align:center;font-weight:700;color:var(--accent)">${UI.fmtNum(items.reduce((s,i)=>s+i.quantity,0))}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+      UI.icons();
+    } catch(err) {
+      document.getElementById('txnReqDetailBody').innerHTML =
+        `<div class="alert alert-danger">오류: ${err.message}</div>`;
+    }
   },
 
   async downloadExcel() {
