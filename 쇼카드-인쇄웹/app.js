@@ -12,16 +12,16 @@ const state = {
   nameColor: '#111111',
   brandColor: '#cc0000',
   priceColor: '#111111',
-  perPage: 8,
-  cardWidthMm: 95,   // mm
+  perPage: 'auto',
+  cardWidthMm: 65,   // mm
   cardHeightMm: 35,  // mm
-  nameSize: 12,      // px
-  brandSize: 11,     // px
-  brandNameGap: 0,   // px
-  priceSize: 20,     // px
-  promoBadgeSize: 10,  // px
-  origPriceSize: 11,   // px
-  salePriceSize: 20,   // px
+  nameSize: 16,      // px
+  brandSize: 14,     // px
+  brandNameGap: 5,   // px
+  priceSize: 30,     // px
+  promoBadgeSize: 15,  // px
+  origPriceSize: 18,   // px
+  salePriceSize: 37,   // px
 };
 
 /* ── DOM 참조 ── */
@@ -277,13 +277,23 @@ function renderAll() {
 
 /* ── 인쇄 ── */
 function buildPrintPages() {
+  let perPage = state.perPage;
+
+  if (perPage === 'auto') {
+    // 자동 채우기: 한 페이지(A4)에 들어갈 수 있는 개수를 카드 크기(mm)에 기반하여 동적으로 계산
+    // A4 세로 297mm, 패딩 상하 24mm (가용 영역 약 273mm)
+    // A4 가로 210mm, 패딩 좌우 20mm (가용 영역 약 190mm)
+    const rows = Math.floor(273 / state.cardHeightMm);
+    const cols = Math.floor(190 / state.cardWidthMm);
+    perPage = Math.max(1, rows * cols);
+  }
+
   const pages = [];
-  const perPage = state.perPage;
   for (let i = 0; i < state.items.length; i += perPage) {
     const chunk = state.items.slice(i, i + perPage);
     const tagsHtml = chunk.map(item => buildCardHTML(item, true)).join('');
     pages.push(`
-      <div class="print-page">
+      <div class="print-page fixed-page">
         <div class="print-grid">
           ${tagsHtml}
         </div>
@@ -398,7 +408,10 @@ clearBgBtn.addEventListener('click', () => {
 colsSelect.addEventListener('change', (e) => { state.cols = Number(e.target.value); renderAll(); });
 currencySelect.addEventListener('change', (e) => { state.currency = e.target.value; renderAll(); });
 brandColorPicker.addEventListener('input', (e) => { state.brandColor = e.target.value; renderAll(); });
-perPageSelect.addEventListener('change', (e) => { state.perPage = Number(e.target.value); });
+perPageSelect.addEventListener('change', (e) => { 
+  const val = e.target.value;
+  state.perPage = val === 'auto' ? 'auto' : Number(val); 
+});
 
 // 카드 크기 변경
 cardWidthInput.addEventListener('change', (e) => {

@@ -7,8 +7,7 @@
   <meta name="description" content="엑셀 업로드로 곤도라 진열장 쇼카드 가격표를 A4 인쇄하는 웹앱" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -139,17 +138,20 @@
       <div class="setting-row">
         <label class="setting-label">페이지당 개수</label>
         <select class="setting-select" id="perPageSelect">
+          <option value="auto" selected>자동 채우기 (기본)</option>
           <option value="4">4개</option>
-          <option value="8" selected>8개 (기본)</option>
+          <option value="8">8개</option>
           <option value="12">12개</option>
           <option value="16">16개</option>
+          <option value="20">20개</option>
+          <option value="24">24개</option>
         </select>
       </div>
       <div class="setting-divider"></div>
       <div class="setting-row">
         <label class="setting-label">카드 가로 (mm)</label>
         <div class="num-input-wrap">
-          <input type="number" class="setting-input-num" id="cardWidthInput" value="95" min="50" max="200" />
+          <input type="number" class="setting-input-num" id="cardWidthInput" value="65" min="50" max="200" />
           <span class="num-unit">mm</span>
         </div>
       </div>
@@ -164,50 +166,50 @@
       <div class="setting-row">
         <label class="setting-label">상품명 크기</label>
         <div class="slider-wrap">
-          <input type="range" id="nameSizeInput" min="8" max="24" value="12" class="setting-slider" />
-          <span class="slider-val" id="nameSizeVal">12</span>
+          <input type="range" id="nameSizeInput" min="8" max="24" value="16" class="setting-slider" />
+          <span class="slider-val" id="nameSizeVal">16</span>
         </div>
       </div>
       <div class="setting-row">
         <label class="setting-label">브랜드명 크기</label>
         <div class="slider-wrap">
-          <input type="range" id="brandSizeInput" min="6" max="20" value="11" class="setting-slider" />
-          <span class="slider-val" id="brandSizeVal">11</span>
+          <input type="range" id="brandSizeInput" min="6" max="20" value="14" class="setting-slider" />
+          <span class="slider-val" id="brandSizeVal">14</span>
         </div>
       </div>
       <div class="setting-row">
         <label class="setting-label">브랜드↔상품명 간격</label>
         <div class="slider-wrap">
-          <input type="range" id="brandNameGapInput" min="0" max="20" value="0" class="setting-slider" />
-          <span class="slider-val" id="brandNameGapVal">0</span>
+          <input type="range" id="brandNameGapInput" min="0" max="20" value="5" class="setting-slider" />
+          <span class="slider-val" id="brandNameGapVal">5</span>
         </div>
       </div>
       <div class="setting-row">
         <label class="setting-label">가격 크기</label>
         <div class="slider-wrap">
-          <input type="range" id="priceSizeInput" min="12" max="40" value="20" class="setting-slider" />
-          <span class="slider-val" id="priceSizeVal">20</span>
+          <input type="range" id="priceSizeInput" min="12" max="40" value="30" class="setting-slider" />
+          <span class="slider-val" id="priceSizeVal">30</span>
         </div>
       </div>
       <div class="setting-row">
         <label class="setting-label">행사문구 크기</label>
         <div class="slider-wrap">
-          <input type="range" id="promoBadgeSizeInput" min="6" max="24" value="10" class="setting-slider" />
-          <span class="slider-val" id="promoBadgeSizeVal">10</span>
+          <input type="range" id="promoBadgeSizeInput" min="6" max="24" value="15" class="setting-slider" />
+          <span class="slider-val" id="promoBadgeSizeVal">15</span>
         </div>
       </div>
       <div class="setting-row">
         <label class="setting-label">원래가격 크기</label>
         <div class="slider-wrap">
-          <input type="range" id="origPriceSizeInput" min="8" max="24" value="11" class="setting-slider" />
-          <span class="slider-val" id="origPriceSizeVal">11</span>
+          <input type="range" id="origPriceSizeInput" min="8" max="24" value="18" class="setting-slider" />
+          <span class="slider-val" id="origPriceSizeVal">18</span>
         </div>
       </div>
       <div class="setting-row">
         <label class="setting-label">행사가격 크기</label>
         <div class="slider-wrap">
-          <input type="range" id="salePriceSizeInput" min="12" max="40" value="20" class="setting-slider" />
-          <span class="slider-val" id="salePriceSizeVal">20</span>
+          <input type="range" id="salePriceSizeInput" min="12" max="40" value="37" class="setting-slider" />
+          <span class="slider-val" id="salePriceSizeVal">37</span>
         </div>
       </div>
     </section>
