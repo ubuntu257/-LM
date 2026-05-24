@@ -10,7 +10,7 @@ const Settings = {
     UI.loading(el);
 
     try {
-      this.profiles = await DB.getAllProfiles();
+      this.profiles = await DB.getAllProfilesAll();  // 비활성 포함 전체 조회
       const clients = this.profiles.filter(p => p.role === 'client');
       const managers = this.profiles.filter(p => p.role === 'manager');
       const observers = this.profiles.filter(p => p.role === 'observer');
@@ -44,7 +44,7 @@ const Settings = {
               <table class="data-table">
                 <thead><tr>
                   <th>업체명</th><th>업체코드</th><th>담당자</th><th>연락처</th>
-                  <th>사업자번호</th><th>계약일</th><th>제품수</th><th>관리</th>
+                  <th>사업자번호</th><th>계약일</th><th>제품수</th><th>상태</th><th>관리</th>
                 </tr></thead>
                 <tbody>
                   ${clients.map(c => this._clientRow(c)).join('')}
@@ -189,6 +189,36 @@ const Settings = {
           </div>
         </div>
 
+        <!-- 비밀번호 변경 모달 -->
+        <div class="modal-overlay" id="pwdModal">
+          <div class="modal" style="max-width:400px">
+            <div class="modal-header">
+              <div class="modal-title">비밀번호 변경</div>
+              <button class="btn-icon" onclick="UI.closeModal('pwdModal')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="pwdForm" onsubmit="Settings.savePassword(event)">
+              <input type="hidden" id="pwdUserId">
+              <div class="modal-body">
+                <p id="pwdUserName" style="font-weight:700;color:var(--text-1);margin-bottom:16px;font-size:0.95rem"></p>
+                <div class="form-group">
+                  <label class="form-label">새 비밀번호 *</label>
+                  <input class="form-input" id="pwdNew" type="password" required minlength="6" placeholder="6자 이상">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">비밀번호 확인 *</label>
+                  <input class="form-input" id="pwdConfirm" type="password" required minlength="6" placeholder="동일하게 입력">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="UI.closeModal('pwdModal')">취소</button>
+                <button type="submit" class="btn btn-primary" id="pwdSubmitBtn">
+                  <i data-lucide="key"></i>변경
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
         <!-- 매니저 권한 모달 -->
         <div class="modal-overlay" id="managerPermModal">
           <div class="modal" style="max-width:480px">
@@ -220,7 +250,8 @@ const Settings = {
   },
 
   _clientRow(c) {
-    return `<tr>
+    const isActive = c.is_active !== false;
+    return `<tr style="opacity:${isActive ? '1' : '0.55'}">
       <td>
         <div style="display:flex;align-items:center;gap:9px">
           <div style="width:10px;height:10px;border-radius:50%;background:${c.logo_color};flex-shrink:0"></div>
@@ -234,9 +265,22 @@ const Settings = {
       <td style="color:var(--text-3);font-size:0.8rem">${c.contract_date || '-'}</td>
       <td style="font-weight:600" id="prodCount-${c.id}">-</td>
       <td>
-        <div style="display:flex;gap:6px">
+        ${isActive
+          ? '<span class="badge badge-green">사용</span>'
+          : '<span class="badge badge-red">미사용</span>'
+        }
+      </td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
           <button class="btn btn-sm btn-secondary" onclick="Settings.openEditModal('${c.id}')">
             <i data-lucide="pencil"></i>수정
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${c.id}','${c.company_name}')">
+            <i data-lucide="key"></i>비밀번호
+          </button>
+          <button class="btn btn-sm ${isActive ? 'btn-danger' : 'btn-success'}"
+            onclick="Settings.toggleActive('${c.id}', ${isActive}, '${c.company_name}')">
+            <i data-lucide="${isActive ? 'user-x' : 'user-check'}"></i>${isActive ? '미사용' : '사용'}
           </button>
         </div>
       </td>
@@ -267,9 +311,14 @@ const Settings = {
           }
         </td>
         <td>
-          <button class="btn btn-sm btn-secondary" onclick="Settings.openPermModal('${m.id}')">
-            <i data-lucide="shield"></i>권한 설정
-          </button>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${m.id}','${m.company_name}')">
+              <i data-lucide="key"></i>비밀번호
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="Settings.openPermModal('${m.id}')">
+              <i data-lucide="shield"></i>권한 설정
+            </button>
+          </div>
         </td>
       </tr>`;
     }));
@@ -281,7 +330,11 @@ const Settings = {
       <td><span class="badge badge-gray">열람자</span></td>
       <td style="color:var(--text-2)">${o.contact_phone || '-'}</td>
       <td><span style="color:var(--text-3);font-size:0.8rem">전체 열람 가능</span></td>
-      <td><span style="font-size:0.78rem;color:var(--text-3)">읽기 전용</span></td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${o.id}','${o.company_name}')">
+          <i data-lucide="key"></i>비밀번호
+        </button>
+      </td>
     </tr>`);
 
     listEl.innerHTML = [...managerRows, ...observerRows].join('');
@@ -302,6 +355,60 @@ const Settings = {
     if (tab === 'managers') {
       const managers = this.profiles.filter(p => p.role === 'manager');
       this._renderManagerList(managers);
+    }
+  },
+
+  openPasswordModal(userId, name) {
+    document.getElementById('pwdUserId').value = userId;
+    document.getElementById('pwdUserName').textContent = `계정: ${name}`;
+    document.getElementById('pwdNew').value = '';
+    document.getElementById('pwdConfirm').value = '';
+    UI.openModal('pwdModal');
+    UI.icons();
+  },
+
+  async savePassword(e) {
+    e.preventDefault();
+    const userId = document.getElementById('pwdUserId').value;
+    const newPwd = document.getElementById('pwdNew').value;
+    const confirm = document.getElementById('pwdConfirm').value;
+
+    if (newPwd !== confirm) {
+      UI.toast('비밀번호가 일치하지 않습니다', 'danger');
+      return;
+    }
+    if (newPwd.length < 6) {
+      UI.toast('6자 이상 입력해주세요', 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('pwdSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '변경 중...';
+
+    try {
+      await DB.setUserPassword(userId, newPwd);
+      UI.toast('비밀번호가 변경되었습니다 ✓', 'success');
+      UI.closeModal('pwdModal');
+    } catch (err) {
+      UI.toast('오류: ' + err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="key"></i>변경';
+      UI.icons();
+    }
+  },
+
+  async toggleActive(userId, currentActive, name) {
+    const next = !currentActive;
+    const label = next ? '사용' : '미사용';
+    if (!await UI.confirm(`"${name}" 계정을 ${label}으로 변경하시겠습니까?`)) return;
+    try {
+      await DB.setUserActive(userId, next);
+      UI.toast(`${name} 계정이 ${label}으로 변경됐습니다`);
+      await this.render();
+    } catch (err) {
+      UI.toast('오류: ' + err.message, 'danger');
     }
   },
 

@@ -255,6 +255,33 @@ const DB = {
     return data;
   },
 
+  // ── Account Management (Admin) ───────────
+  async setUserPassword(userId, password) {
+    const { error } = await _sb.rpc('admin_set_password', {
+      p_user_id: userId,
+      p_password: password,
+    });
+    if (error) throw error;
+  },
+
+  async setUserActive(userId, isActive) {
+    const { error } = await _sb.from('user_profiles')
+      .update({ is_active: isActive })
+      .eq('id', userId);
+    if (error) throw error;
+  },
+
+  async getAllProfilesAll() {
+    // is_active 관계없이 전체 조회 (관리자 설정용)
+    const { data, error } = await _sb
+      .from('user_profiles')
+      .select('*')
+      .order('role')
+      .order('company_name');
+    if (error) throw error;
+    return data;
+  },
+
   // ── Dashboard Stats ──────────────────────
   async getDashboardStats(companyIds) {
     // 제품 수 및 재고 현황
