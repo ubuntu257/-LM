@@ -44,13 +44,19 @@ const Transactions = {
             <input type="date" class="filter-select" id="txnStart" value="${this.filterStart}" style="width:140px">
             <span style="color:var(--text-3)">~</span>
             <input type="date" class="filter-select" id="txnEnd" value="${this.filterEnd}" style="width:140px">
+            <button type="button" class="btn btn-primary btn-sm" onclick="Transactions._load()">
+              <i data-lucide="search"></i>조회
+            </button>
           </div>
           <div class="toolbar-actions">
             ${isAdmin ? `
+            <button class="btn btn-primary btn-sm" onclick="Transactions.openTxnInputModal()">
+              <i data-lucide="plus-circle"></i>입출고 입력
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="Transactions.downloadTemplate()">
               <i data-lucide="download"></i>업로드 양식
             </button>
-            <label class="btn btn-primary btn-sm" style="cursor:pointer">
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer">
               <i data-lucide="upload"></i>엑셀 업로드
               <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="Transactions.handleUpload(event)">
             </label>
@@ -110,13 +116,71 @@ const Transactions = {
             </div>
           </div>
         </div>
+
+        <!-- 입출고 직접 입력 모달 -->
+        <div class="modal-overlay" id="txnInputModal">
+          <div class="modal" style="max-width:480px">
+            <div class="modal-header">
+              <div class="modal-title">입출고 직접 입력</div>
+              <button class="btn-icon" onclick="UI.closeModal('txnInputModal')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="txnInputForm" onsubmit="Transactions.submitTxn(event)">
+              <div class="modal-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="form-group" style="margin:0;grid-column:1/-1">
+                    <label class="form-label">업체 *</label>
+                    <select class="form-input" id="tiCompany" required onchange="Transactions.loadTxnProducts()">
+                      <option value="">선택하세요</option>
+                      ${this.companies.map(c => `<option value="${c.id}">${c.company_name}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">유형 *</label>
+                    <select class="form-input" id="tiType" required>
+                      <option value="inbound">📥 입고</option>
+                      <option value="outbound">📤 출고</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">날짜 *</label>
+                    <input class="form-input" id="tiDate" type="date" required>
+                  </div>
+                  <div class="form-group" style="margin:0;grid-column:1/-1">
+                    <label class="form-label">제품 *</label>
+                    <select class="form-input" id="tiProduct" required>
+                      <option value="">업체를 먼저 선택하세요</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">수량 *</label>
+                    <input class="form-input" id="tiQty" type="number" min="1" required placeholder="0">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">참조번호</label>
+                    <input class="form-input" id="tiRef" placeholder="예: PO-001">
+                  </div>
+                  <div class="form-group" style="margin:0;grid-column:1/-1">
+                    <label class="form-label">비고</label>
+                    <input class="form-input" id="tiNote" placeholder="메모">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="UI.closeModal('txnInputModal')">취소</button>
+                <button type="submit" class="btn btn-primary" id="txnInputSubmitBtn">
+                  <i data-lucide="check"></i>저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       `;
 
-      // 이벤트
-      document.getElementById('txnCompany')?.addEventListener('change', e => { this.filterCompany = e.target.value; this._load(); });
-      document.getElementById('txnType')?.addEventListener('change', e => { this.filterType = e.target.value; this._load(); });
-      document.getElementById('txnStart')?.addEventListener('change', e => { this.filterStart = e.target.value; this._load(); });
-      document.getElementById('txnEnd')?.addEventListener('change', e => { this.filterEnd = e.target.value; this._load(); });
+      // 이벤트 (날짜/필터 변경은 값만 저장, 조회 버튼으로 실행)
+      document.getElementById('txnCompany')?.addEventListener('change', e => { this.filterCompany = e.target.value; });
+      document.getElementById('txnType')?.addEventListener('change', e => { this.filterType = e.target.value; });
+      document.getElementById('txnStart')?.addEventListener('change', e => { this.filterStart = e.target.value; });
+      document.getElementById('txnEnd')?.addEventListener('change', e => { this.filterEnd = e.target.value; });
 
       UI.icons();
       await this._load();
@@ -370,6 +434,75 @@ const Transactions = {
     } catch(err) {
       document.getElementById('txnReqDetailBody').innerHTML =
         `<div class="alert alert-danger">오류: ${err.message}</div>`;
+    }
+  },
+
+  openTxnInputModal() {
+    document.getElementById('txnInputForm').reset();
+    // 기본 날짜 = 오늘
+    document.getElementById('tiDate').value = new Date().toISOString().slice(0, 10);
+    // 현재 필터 업체가 있으면 미리 선택
+    if (this.filterCompany) {
+      const sel = document.getElementById('tiCompany');
+      if (sel) { sel.value = this.filterCompany; this.loadTxnProducts(); }
+    } else {
+      document.getElementById('tiProduct').innerHTML = '<option value="">업체를 먼저 선택하세요</option>';
+    }
+    UI.openModal('txnInputModal');
+    UI.icons();
+  },
+
+  async loadTxnProducts() {
+    const companyId = document.getElementById('tiCompany')?.value;
+    const sel = document.getElementById('tiProduct');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">불러오는 중...</option>';
+    if (!companyId) {
+      sel.innerHTML = '<option value="">업체를 먼저 선택하세요</option>';
+      return;
+    }
+    try {
+      const products = await DB.getProducts(companyId);
+      sel.innerHTML = '<option value="">제품 선택</option>' +
+        products.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
+    } catch (err) {
+      sel.innerHTML = '<option value="">오류: ' + err.message + '</option>';
+    }
+  },
+
+  async submitTxn(e) {
+    e.preventDefault();
+    const btn = document.getElementById('txnInputSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '저장 중...';
+
+    const companyId = document.getElementById('tiCompany').value;
+    const productId = document.getElementById('tiProduct').value;
+    const type      = document.getElementById('tiType').value;
+    const qty       = parseInt(document.getElementById('tiQty').value);
+    const date      = document.getElementById('tiDate').value;
+    const ref       = document.getElementById('tiRef').value.trim();
+    const note      = document.getElementById('tiNote').value.trim();
+
+    try {
+      await DB.processTransactionBatch([{
+        company_id: companyId,
+        product_id: productId,
+        type,
+        quantity: qty,
+        reference: ref || null,
+        note: note || null,
+        transaction_date: date,
+      }]);
+      UI.toast(`${type === 'inbound' ? '입고' : '출고'} ${qty}개 등록 완료 ✓`, 'success');
+      UI.closeModal('txnInputModal');
+      await this._load();
+    } catch (err) {
+      UI.toast('오류: ' + err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="check"></i>저장';
+      UI.icons();
     }
   },
 

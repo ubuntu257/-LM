@@ -67,6 +67,7 @@ const Inventory = {
                 <th>최소 재고</th>
                 <th>보관 위치</th>
                 ${isAdmin ? '<th>매입 단가</th>' : ''}
+                <th>소비자가격</th>
                 <th>상태</th>
                 ${isAdmin ? '<th>관리</th>' : ''}
               </tr></thead>
@@ -117,10 +118,14 @@ const Inventory = {
                     <input class="form-input" id="pUnit" value="개" placeholder="개/박스/kg">
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
                   <div class="form-group" style="margin:0">
                     <label class="form-label">매입 단가 (원)</label>
                     <input class="form-input" id="pPrice" type="number" min="0" value="0">
+                  </div>
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">소비자가격 (원)</label>
+                    <input class="form-input" id="pConsumerPrice" type="number" min="0" value="0">
                   </div>
                   <div class="form-group" style="margin:0">
                     <label class="form-label">보관 위치</label>
@@ -199,6 +204,7 @@ const Inventory = {
         <td style="color:var(--text-3)">${UI.fmtNum(p.min_stock)}${p.unit}</td>
         <td style="color:var(--text-2);font-size:0.82rem">${p.location || '-'}</td>
         ${isAdmin ? `<td style="color:var(--text-2)">${UI.fmtMoney(p.purchase_price)}</td>` : ''}
+        <td style="color:var(--text-2)">${p.consumer_price ? UI.fmtMoney(p.consumer_price) : '-'}</td>
         <td>
           ${isLow
             ? '<span class="badge badge-red">재고 부족</span>'
@@ -245,6 +251,7 @@ const Inventory = {
     document.getElementById('pMinStock').value = p.min_stock;
     document.getElementById('pUnit').value = p.unit;
     document.getElementById('pPrice').value = p.purchase_price;
+    document.getElementById('pConsumerPrice').value = p.consumer_price || 0;
     document.getElementById('pLocation').value = p.location || '';
     UI.openModal('productModal');
     UI.icons();
@@ -263,6 +270,7 @@ const Inventory = {
       min_stock: parseInt(document.getElementById('pMinStock').value) || 0,
       unit: document.getElementById('pUnit').value.trim() || '개',
       purchase_price: parseFloat(document.getElementById('pPrice').value) || 0,
+      consumer_price: parseFloat(document.getElementById('pConsumerPrice').value) || 0,
       location: document.getElementById('pLocation').value.trim(),
     };
 
