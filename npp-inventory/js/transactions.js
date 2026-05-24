@@ -7,6 +7,7 @@ const Transactions = {
   filterType: '',
   filterStart: '',
   filterEnd: '',
+  rowCount: 0,
 
   async render() {
     const el = document.getElementById('pg-transactions');
@@ -117,61 +118,46 @@ const Transactions = {
           </div>
         </div>
 
-        <!-- 입출고 직접 입력 모달 -->
+        <!-- 입출고 직접 입력 모달 (다중 행) -->
         <div class="modal-overlay" id="txnInputModal">
-          <div class="modal" style="max-width:480px">
+          <div class="modal" style="max-width:980px;width:96vw">
             <div class="modal-header">
               <div class="modal-title">입출고 직접 입력</div>
               <button class="btn-icon" onclick="UI.closeModal('txnInputModal')"><i data-lucide="x"></i></button>
             </div>
-            <form id="txnInputForm" onsubmit="Transactions.submitTxn(event)">
-              <div class="modal-body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                  <div class="form-group" style="margin:0;grid-column:1/-1">
-                    <label class="form-label">업체 *</label>
-                    <select class="form-input" id="tiCompany" required onchange="Transactions.loadTxnProducts()">
-                      <option value="">선택하세요</option>
-                      ${this.companies.map(c => `<option value="${c.id}">${c.company_name}</option>`).join('')}
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin:0">
-                    <label class="form-label">유형 *</label>
-                    <select class="form-input" id="tiType" required>
-                      <option value="inbound">📥 입고</option>
-                      <option value="outbound">📤 출고</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin:0">
-                    <label class="form-label">날짜 *</label>
-                    <input class="form-input" id="tiDate" type="date" required>
-                  </div>
-                  <div class="form-group" style="margin:0;grid-column:1/-1">
-                    <label class="form-label">제품 *</label>
-                    <select class="form-input" id="tiProduct" required>
-                      <option value="">업체를 먼저 선택하세요</option>
-                    </select>
-                  </div>
-                  <div class="form-group" style="margin:0">
-                    <label class="form-label">수량 *</label>
-                    <input class="form-input" id="tiQty" type="number" min="1" required placeholder="0">
-                  </div>
-                  <div class="form-group" style="margin:0">
-                    <label class="form-label">참조번호</label>
-                    <input class="form-input" id="tiRef" placeholder="예: PO-001">
-                  </div>
-                  <div class="form-group" style="margin:0;grid-column:1/-1">
-                    <label class="form-label">비고</label>
-                    <input class="form-input" id="tiNote" placeholder="메모">
-                  </div>
+            <div class="modal-body" style="padding-bottom:8px">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <label style="font-size:0.85rem;color:var(--text-2);white-space:nowrap;font-weight:600">기본 날짜</label>
+                  <input class="form-input" id="tiBaseDate" type="date" style="width:145px" onchange="Transactions.applyBaseDate()">
                 </div>
+                <span style="font-size:0.78rem;color:var(--text-3)">※ 행 추가 시 기본 날짜가 자동 적용됩니다. 행별로 개별 수정도 가능합니다.</span>
               </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="UI.closeModal('txnInputModal')">취소</button>
-                <button type="submit" class="btn btn-primary" id="txnInputSubmitBtn">
-                  <i data-lucide="check"></i>저장
-                </button>
+              <div class="table-overflow">
+                <table class="data-table" style="min-width:820px">
+                  <thead><tr>
+                    <th style="width:36px"></th>
+                    <th style="min-width:150px">업체 *</th>
+                    <th style="width:95px">유형 *</th>
+                    <th style="min-width:170px">제품 *</th>
+                    <th style="width:75px">수량 *</th>
+                    <th style="width:132px">날짜 *</th>
+                    <th style="width:105px">참조번호</th>
+                    <th>비고</th>
+                  </tr></thead>
+                  <tbody id="txnRowsBody"></tbody>
+                </table>
               </div>
-            </form>
+              <button type="button" class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="Transactions.addTxnRow()">
+                <i data-lucide="plus"></i>행 추가
+              </button>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="UI.closeModal('txnInputModal')">취소</button>
+              <button type="button" class="btn btn-primary" id="txnInputSubmitBtn" onclick="Transactions.submitTxnRows()">
+                <i data-lucide="check"></i>전체 저장
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -262,7 +248,10 @@ const Transactions = {
 
     const products = await DB.getProducts();
     const productMap = {};
-    products.forEach(p => { productMap[p.sku?.toUpperCase()] = p; productMap[p.name] = p; });
+    products.forEach(p => {
+      if (p.sku) productMap[p.sku.toUpperCase()] = p;
+      if (p.name) { productMap[p.name] = p; productMap[p.name.toUpperCase()] = p; }
+    });
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -277,7 +266,8 @@ const Transactions = {
         rows.forEach((row, i) => {
           const lineNum = i + 2;
           const code = String(row['업체코드'] || row['company_code'] || '').toUpperCase().trim();
-          const skuOrName = String(row['SKU'] || row['제품명'] || row['product'] || '').trim();
+          const sku  = String(row['SKU'] || '').trim();
+          const productName = String(row['품명'] || row['제품명'] || row['product'] || '').trim();
           const type = String(row['유형'] || row['type'] || '').trim();
           const qty = parseInt(row['수량'] || row['quantity'] || 0);
           const ref = String(row['참조번호'] || row['reference'] || '');
@@ -286,7 +276,6 @@ const Transactions = {
           let dateStr = '';
           if (dateRaw) {
             if (typeof dateRaw === 'number') {
-              // Excel serial date
               const d = new Date((dateRaw - 25569) * 86400000);
               dateStr = UI.fmtDate(d.toISOString());
             } else {
@@ -296,9 +285,17 @@ const Transactions = {
 
           if (!code) { errors.push(`${lineNum}행: 업체코드 누락`); return; }
           if (!companyMap[code]) { errors.push(`${lineNum}행: 업체코드 "${code}" 없음`); return; }
-          if (!skuOrName) { errors.push(`${lineNum}행: SKU/제품명 누락`); return; }
-          const product = productMap[skuOrName.toUpperCase()] || productMap[skuOrName];
-          if (!product) { errors.push(`${lineNum}행: 제품 "${skuOrName}" 없음`); return; }
+          if (!sku && !productName) { errors.push(`${lineNum}행: SKU 또는 품명 필요`); return; }
+
+          // SKU 우선, 없으면 품명으로 검색
+          let product = null;
+          if (sku) product = productMap[sku.toUpperCase()];
+          if (!product && productName) product = productMap[productName] || productMap[productName.toUpperCase()];
+          if (!product) {
+            const identifier = sku || productName;
+            errors.push(`${lineNum}행: 제품 "${identifier}" 없음`);
+            return;
+          }
           if (product.company_id !== companyMap[code]) { errors.push(`${lineNum}행: 제품이 해당 업체 소속이 아님`); return; }
           const txnType = (type === '입고' || type === 'inbound') ? 'inbound' : (type === '출고' || type === 'outbound') ? 'outbound' : '';
           if (!txnType) { errors.push(`${lineNum}행: 유형은 "입고" 또는 "출고"만 가능`); return; }
@@ -341,10 +338,12 @@ const Transactions = {
 
   downloadTemplate() {
     const sample = [
-      { '업체코드': 'KE2024', 'SKU': 'NPP-001', '유형': '입고', '수량': 50, '날짜': '2025-05-01', '참조번호': 'PO-001', '비고': '1차 입고' },
-      { '업체코드': 'KE2024', 'SKU': 'NPP-001', '유형': '출고', '수량': 10, '날짜': '2025-05-05', '참조번호': 'SO-001', '비고': '일반 출고' },
+      { '업체코드': 'KE2024', '품명': '국립공원 텀블러', 'SKU': 'NPP-001', '유형': '입고', '수량': 50, '날짜': '2026-05-01', '참조번호': 'PO-001', '비고': '1차 입고' },
+      { '업체코드': 'KE2024', '품명': '국립공원 에코백', 'SKU': 'NPP-002', '유형': '출고', '수량': 10, '날짜': '2026-05-05', '참조번호': 'SO-001', '비고': '일반 출고' },
+      { '업체코드': 'KE2024', '품명': '품명으로도 등록 가능', 'SKU': '', '유형': '입고', '수량': 30, '날짜': '2026-05-10', '참조번호': '', '비고': 'SKU 없어도 품명으로 검색' },
     ];
     const ws = XLSX.utils.json_to_sheet(sample);
+    ws['!cols'] = [{wch:12},{wch:24},{wch:14},{wch:8},{wch:8},{wch:12},{wch:12},{wch:24}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '입출고양식');
     XLSX.writeFile(wb, 'transaction_upload_template.xlsx');
@@ -438,70 +437,155 @@ const Transactions = {
   },
 
   openTxnInputModal() {
-    document.getElementById('txnInputForm').reset();
-    // 기본 날짜 = 오늘
-    document.getElementById('tiDate').value = new Date().toISOString().slice(0, 10);
-    // 현재 필터 업체가 있으면 미리 선택
-    if (this.filterCompany) {
-      const sel = document.getElementById('tiCompany');
-      if (sel) { sel.value = this.filterCompany; this.loadTxnProducts(); }
-    } else {
-      document.getElementById('tiProduct').innerHTML = '<option value="">업체를 먼저 선택하세요</option>';
-    }
+    this.rowCount = 0;
+    const tbody = document.getElementById('txnRowsBody');
+    if (tbody) tbody.innerHTML = '';
+    const today = new Date().toISOString().slice(0, 10);
+    const dateEl = document.getElementById('tiBaseDate');
+    if (dateEl) dateEl.value = today;
+    // 기본 3행 추가
+    this.addTxnRow();
+    this.addTxnRow();
+    this.addTxnRow();
     UI.openModal('txnInputModal');
     UI.icons();
   },
 
-  async loadTxnProducts() {
-    const companyId = document.getElementById('tiCompany')?.value;
-    const sel = document.getElementById('tiProduct');
+  _rowHtml(n) {
+    const today = document.getElementById('tiBaseDate')?.value || new Date().toISOString().slice(0, 10);
+    const companyOptions = this.companies
+      .map(c => `<option value="${c.id}">${c.company_name}</option>`)
+      .join('');
+    const inputStyle = 'font-size:0.82rem;padding:5px 7px;height:34px';
+    return `<tr id="txnRow-${n}" style="vertical-align:middle">
+      <td style="text-align:center">
+        <button type="button" onclick="Transactions.removeTxnRow(${n})"
+          style="background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-3);cursor:pointer;width:24px;height:24px;font-size:0.8rem;line-height:1">✕</button>
+      </td>
+      <td>
+        <select class="form-input" id="tiCompany-${n}" style="${inputStyle}"
+          onchange="Transactions.loadRowProducts(${n})">
+          <option value="">선택</option>
+          ${companyOptions}
+        </select>
+      </td>
+      <td>
+        <select class="form-input" id="tiType-${n}" style="${inputStyle}">
+          <option value="inbound">📥 입고</option>
+          <option value="outbound">📤 출고</option>
+        </select>
+      </td>
+      <td>
+        <select class="form-input" id="tiProduct-${n}" style="${inputStyle}">
+          <option value="">업체 선택 후</option>
+        </select>
+      </td>
+      <td>
+        <input class="form-input" id="tiQty-${n}" type="number" min="1"
+          style="${inputStyle};width:70px" placeholder="0">
+      </td>
+      <td>
+        <input class="form-input" id="tiDate-${n}" type="date" value="${today}"
+          style="${inputStyle}">
+      </td>
+      <td>
+        <input class="form-input" id="tiRef-${n}" style="${inputStyle}" placeholder="PO-001">
+      </td>
+      <td>
+        <input class="form-input" id="tiNote-${n}" style="${inputStyle}" placeholder="메모">
+      </td>
+    </tr>`;
+  },
+
+  addTxnRow() {
+    const n = ++this.rowCount;
+    const tbody = document.getElementById('txnRowsBody');
+    if (!tbody) return;
+    tbody.insertAdjacentHTML('beforeend', this._rowHtml(n));
+    UI.icons();
+  },
+
+  removeTxnRow(n) {
+    document.getElementById(`txnRow-${n}`)?.remove();
+  },
+
+  applyBaseDate() {
+    const baseDate = document.getElementById('tiBaseDate')?.value;
+    if (!baseDate) return;
+    for (let n = 1; n <= this.rowCount; n++) {
+      const dateEl = document.getElementById(`tiDate-${n}`);
+      if (dateEl) dateEl.value = baseDate;
+    }
+  },
+
+  async loadRowProducts(n) {
+    const companyId = document.getElementById(`tiCompany-${n}`)?.value;
+    const sel = document.getElementById(`tiProduct-${n}`);
     if (!sel) return;
-    sel.innerHTML = '<option value="">불러오는 중...</option>';
     if (!companyId) {
-      sel.innerHTML = '<option value="">업체를 먼저 선택하세요</option>';
+      sel.innerHTML = '<option value="">업체 선택 후</option>';
       return;
     }
+    sel.innerHTML = '<option value="">로드 중...</option>';
+    sel.disabled = true;
     try {
       const products = await DB.getProducts(companyId);
       sel.innerHTML = '<option value="">제품 선택</option>' +
         products.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
     } catch (err) {
-      sel.innerHTML = '<option value="">오류: ' + err.message + '</option>';
+      sel.innerHTML = '<option value="">로드 실패</option>';
+      UI.toast('제품 로드 오류: ' + err.message, 'danger');
+    } finally {
+      sel.disabled = false;
     }
   },
 
-  async submitTxn(e) {
-    e.preventDefault();
+  async submitTxnRows() {
+    const batch = [];
+    const skipped = [];
+
+    for (let n = 1; n <= this.rowCount; n++) {
+      if (!document.getElementById(`txnRow-${n}`)) continue; // 삭제된 행
+      const companyId = document.getElementById(`tiCompany-${n}`)?.value?.trim();
+      const type      = document.getElementById(`tiType-${n}`)?.value;
+      const productId = document.getElementById(`tiProduct-${n}`)?.value?.trim();
+      const qty       = parseInt(document.getElementById(`tiQty-${n}`)?.value || '0');
+      const date      = document.getElementById(`tiDate-${n}`)?.value;
+      const ref       = document.getElementById(`tiRef-${n}`)?.value?.trim();
+      const note      = document.getElementById(`tiNote-${n}`)?.value?.trim();
+
+      // 빈 행은 건너뜀
+      if (!companyId && !productId && !qty) continue;
+
+      if (!companyId) { skipped.push(`${n}행: 업체 선택 필요`); continue; }
+      if (!productId) { skipped.push(`${n}행: 제품 선택 필요`); continue; }
+      if (!qty || qty < 1) { skipped.push(`${n}행: 수량 1 이상 필요`); continue; }
+      if (!date) { skipped.push(`${n}행: 날짜 입력 필요`); continue; }
+
+      batch.push({ company_id: companyId, product_id: productId, type, quantity: qty,
+        reference: ref || null, note: note || null, transaction_date: date });
+    }
+
+    if (batch.length === 0) {
+      UI.toast(skipped.length > 0 ? skipped[0] : '입력된 데이터가 없습니다', 'danger');
+      return;
+    }
+
     const btn = document.getElementById('txnInputSubmitBtn');
     btn.disabled = true;
     btn.textContent = '저장 중...';
 
-    const companyId = document.getElementById('tiCompany').value;
-    const productId = document.getElementById('tiProduct').value;
-    const type      = document.getElementById('tiType').value;
-    const qty       = parseInt(document.getElementById('tiQty').value);
-    const date      = document.getElementById('tiDate').value;
-    const ref       = document.getElementById('tiRef').value.trim();
-    const note      = document.getElementById('tiNote').value.trim();
-
     try {
-      await DB.processTransactionBatch([{
-        company_id: companyId,
-        product_id: productId,
-        type,
-        quantity: qty,
-        reference: ref || null,
-        note: note || null,
-        transaction_date: date,
-      }]);
-      UI.toast(`${type === 'inbound' ? '입고' : '출고'} ${qty}개 등록 완료 ✓`, 'success');
+      await DB.processTransactionBatch(batch);
+      const warn = skipped.length > 0 ? ` (${skipped.length}행 건너뜀)` : '';
+      UI.toast(`${batch.length}건 저장 완료${warn} ✓`, 'success');
       UI.closeModal('txnInputModal');
       await this._load();
     } catch (err) {
       UI.toast('오류: ' + err.message, 'danger');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i data-lucide="check"></i>저장';
+      btn.innerHTML = '<i data-lucide="check"></i>전체 저장';
       UI.icons();
     }
   },
