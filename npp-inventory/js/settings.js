@@ -145,8 +145,13 @@ const Settings = {
             </div>
             <form id="editCompanyForm" onsubmit="Settings.saveCompany(event)">
               <input type="hidden" id="ecId">
+              <input type="hidden" id="ecOrigCode">
               <div class="modal-body">
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <div class="form-group" style="margin:0">
+                    <label class="form-label">업체코드 (로그인 ID)</label>
+                    <input class="form-input" id="ecCode" required placeholder="예: KE2024" style="text-transform:uppercase;font-weight:700;letter-spacing:0.05em">
+                  </div>
                   <div class="form-group" style="margin:0">
                     <label class="form-label">업체명</label>
                     <input class="form-input" id="ecName" required>
@@ -213,6 +218,37 @@ const Settings = {
                 <button type="button" class="btn btn-secondary" onclick="UI.closeModal('pwdModal')">취소</button>
                 <button type="submit" class="btn btn-primary" id="pwdSubmitBtn">
                   <i data-lucide="key"></i>변경
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 업체코드(로그인ID) 변경 모달 -->
+        <div class="modal-overlay" id="codeModal">
+          <div class="modal" style="max-width:400px">
+            <div class="modal-header">
+              <div class="modal-title">업체코드(로그인 ID) 변경</div>
+              <button class="btn-icon" onclick="UI.closeModal('codeModal')"><i data-lucide="x"></i></button>
+            </div>
+            <form id="codeForm" onsubmit="Settings.saveCode(event)">
+              <input type="hidden" id="codeUserId">
+              <div class="modal-body">
+                <p id="codeUserName" style="font-weight:700;color:var(--text-1);margin-bottom:4px;font-size:0.95rem"></p>
+                <p style="color:var(--text-3);font-size:0.8rem;margin-bottom:16px">코드를 변경하면 해당 코드로 로그인해야 합니다</p>
+                <div class="form-group">
+                  <label class="form-label">현재 코드</label>
+                  <input class="form-input" id="codeOld" disabled style="opacity:0.6">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">새 업체코드 (로그인 ID) *</label>
+                  <input class="form-input" id="codeNew" required placeholder="예: KE2025" style="text-transform:uppercase;font-weight:700;letter-spacing:0.05em">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="UI.closeModal('codeModal')">취소</button>
+                <button type="submit" class="btn btn-primary" id="codeSubmitBtn">
+                  <i data-lucide="at-sign"></i>변경
                 </button>
               </div>
             </form>
@@ -311,9 +347,12 @@ const Settings = {
           }
         </td>
         <td>
-          <div style="display:flex;gap:5px">
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
             <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${m.id}','${m.company_name}')">
               <i data-lucide="key"></i>비밀번호
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="Settings.openCodeModal('${m.id}','${m.company_name}','${m.company_code}')">
+              <i data-lucide="at-sign"></i>코드변경
             </button>
             <button class="btn btn-sm btn-secondary" onclick="Settings.openPermModal('${m.id}')">
               <i data-lucide="shield"></i>권한 설정
@@ -331,9 +370,14 @@ const Settings = {
       <td style="color:var(--text-2)">${o.contact_phone || '-'}</td>
       <td><span style="color:var(--text-3);font-size:0.8rem">전체 열람 가능</span></td>
       <td>
-        <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${o.id}','${o.company_name}')">
-          <i data-lucide="key"></i>비밀번호
-        </button>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${o.id}','${o.company_name}')">
+            <i data-lucide="key"></i>비밀번호
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="Settings.openCodeModal('${o.id}','${o.company_name}','${o.company_code}')">
+            <i data-lucide="at-sign"></i>코드변경
+          </button>
+        </div>
       </td>
     </tr>`);
 
@@ -395,6 +439,49 @@ const Settings = {
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<i data-lucide="key"></i>변경';
+      UI.icons();
+    }
+  },
+
+  openCodeModal(userId, name, currentCode) {
+    document.getElementById('codeUserId').value = userId;
+    document.getElementById('codeUserName').textContent = `계정: ${name}`;
+    document.getElementById('codeOld').value = currentCode;
+    document.getElementById('codeNew').value = '';
+    UI.openModal('codeModal');
+    UI.icons();
+    setTimeout(() => document.getElementById('codeNew')?.focus(), 100);
+  },
+
+  async saveCode(e) {
+    e.preventDefault();
+    const userId = document.getElementById('codeUserId').value;
+    const newCode = document.getElementById('codeNew').value.trim().toUpperCase();
+    const oldCode = document.getElementById('codeOld').value;
+
+    if (!newCode) {
+      UI.toast('업체코드를 입력해주세요', 'danger');
+      return;
+    }
+    if (newCode === oldCode) {
+      UI.toast('현재 코드와 동일합니다', 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('codeSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '변경 중...';
+
+    try {
+      await DB.setCompanyCode(userId, newCode);
+      UI.toast(`업체코드가 "${newCode}"로 변경되었습니다 ✓`, 'success');
+      UI.closeModal('codeModal');
+      await this.render();
+    } catch (err) {
+      UI.toast('오류: ' + err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="at-sign"></i>변경';
       UI.icons();
     }
   },
@@ -472,6 +559,8 @@ const Settings = {
     const c = this.profiles.find(p => p.id === id);
     if (!c) return;
     document.getElementById('ecId').value = id;
+    document.getElementById('ecOrigCode').value = c.company_code || '';
+    document.getElementById('ecCode').value = c.company_code || '';
     document.getElementById('ecName').value = c.company_name;
     document.getElementById('ecContact').value = c.contact_name || '';
     document.getElementById('ecPhone').value = c.contact_phone || '';
@@ -486,7 +575,18 @@ const Settings = {
   async saveCompany(e) {
     e.preventDefault();
     const id = document.getElementById('ecId').value;
+    const origCode = document.getElementById('ecOrigCode').value;
+    const newCode = document.getElementById('ecCode').value.trim().toUpperCase();
+
+    const btn = e.submitter;
+    if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+
     try {
+      // 업체코드(로그인 ID) 변경 여부 확인
+      if (newCode && newCode !== origCode) {
+        await DB.setCompanyCode(id, newCode);
+      }
+
       await DB.updateProfile(id, {
         company_name: document.getElementById('ecName').value.trim(),
         contact_name: document.getElementById('ecContact').value.trim(),
@@ -497,11 +597,14 @@ const Settings = {
         contract_date: document.getElementById('ecContract').value || null,
         logo_color: document.getElementById('ecColor').value,
       });
+
       UI.toast('저장되었습니다');
       UI.closeModal('editCompanyModal');
       await this.render();
     } catch (err) {
       UI.toast('오류: ' + err.message, 'danger');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '저장'; }
     }
   },
 
