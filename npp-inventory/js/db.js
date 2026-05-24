@@ -264,6 +264,14 @@ const DB = {
     if (error) throw error;
   },
 
+  async setCompanyCode(userId, newCode) {
+    const { error } = await _sb.rpc('admin_set_company_code', {
+      p_user_id: userId,
+      p_new_code: newCode,
+    });
+    if (error) throw error;
+  },
+
   async setUserActive(userId, isActive) {
     const { error } = await _sb.from('user_profiles')
       .update({ is_active: isActive })
