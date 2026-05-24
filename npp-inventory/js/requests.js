@@ -14,7 +14,8 @@ const Requests = {
     const isAdmin = Auth.isAdmin();
     const isManager = Auth.isManager();
     const isClient = Auth.isClient();
-    const canViewAll = isAdmin || isManager;
+    const isObserver = Auth.isObserver();
+    const canViewAll = isAdmin || isManager || isObserver;
 
     try {
       this.companies = canViewAll ? await DB.getPermittedCompanies() : [Auth.profile];
@@ -114,7 +115,7 @@ const Requests = {
   _renderTable(reqs) {
     const isAdmin = Auth.isAdmin();
     const isClient = Auth.isClient();
-    const canViewAll = Auth.isAdmin() || Auth.isManager();
+    const canViewAll = Auth.isAdmin() || Auth.isManager() || Auth.isObserver();
     const tbody = document.getElementById('reqBody');
     if (!tbody) return;
 
@@ -194,7 +195,7 @@ const Requests = {
           actions = `<span style="font-size:0.78rem;color:var(--green)">출고완료 ${r.tracking_number ? '| 송장: ' + r.tracking_number : ''}</span>`;
         }
       } else {
-        // manager — 행 클릭으로 상세 열람
+        // manager / observer — 행 클릭으로 상세 열람 (수정 불가)
         actions = '<span style="font-size:0.78rem;color:var(--text-3)">클릭하여 상세보기</span>';
       }
 

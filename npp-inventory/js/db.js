@@ -60,9 +60,9 @@ const DB = {
     if (error) throw error;
   },
 
-  // 매니저가 볼 수 있는 업체 목록
+  // 역할별 볼 수 있는 업체 목록
   async getPermittedCompanies() {
-    if (Auth.isAdmin()) return DB.getClients();
+    if (Auth.isAdmin() || Auth.isObserver()) return DB.getClients();
     if (Auth.isManager()) {
       const ids = await DB.getManagerPermissions(Auth.profile.id);
       if (ids.length === 0) return [];

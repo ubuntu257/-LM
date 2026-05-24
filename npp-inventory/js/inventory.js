@@ -15,7 +15,8 @@ const Inventory = {
     try {
       const isAdmin = Auth.isAdmin();
       const isManager = Auth.isManager();
-      const canViewAll = isAdmin || isManager;
+      const isObserver = Auth.isObserver();
+      const canViewAll = isAdmin || isManager || isObserver;
 
       this.companies = canViewAll ? await DB.getPermittedCompanies() : [Auth.profile];
       if (!this.filterCompany && this.companies.length === 1) {
@@ -156,7 +157,7 @@ const Inventory = {
 
   _renderTable() {
     const isAdmin = Auth.isAdmin();
-    const canViewAll = Auth.isAdmin() || Auth.isManager();
+    const canViewAll = Auth.isAdmin() || Auth.isManager() || Auth.isObserver();
     const search = this.filterSearch.toLowerCase();
 
     let filtered = this.products.filter(p =>

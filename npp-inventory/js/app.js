@@ -54,10 +54,14 @@ const App = {
     // 역할 배지
     document.getElementById('roleBadge').textContent = Auth.getRoleLabel();
 
-    // 관리자 메뉴 표시
+    // 관리자 전용 메뉴 표시
     document.querySelectorAll('.admin-only').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
     });
+
+    // 설정 메뉴 — 관리자만 표시 (observer 포함 나머지 숨김)
+    const settingsNav = document.querySelector('.nav-item[data-page="settings"]');
+    if (settingsNav) settingsNav.style.display = isAdmin ? '' : 'none';
 
     // 사이드바 유저 정보
     const initial = profile.company_name.charAt(0);
