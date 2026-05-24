@@ -100,6 +100,16 @@
     </nav>
 
     <div class="sidebar-footer">
+      <button id="themeToggleBtn" onclick="App.toggleTheme()"
+        style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 16px;
+               background:transparent;border:none;color:var(--text-3);font-size:0.82rem;
+               cursor:pointer;border-radius:var(--radius-sm);margin-bottom:6px;
+               transition:background 0.15s,color 0.15s"
+        onmouseover="this.style.background='var(--bg-4)';this.style.color='var(--text-1)'"
+        onmouseout="this.style.background='transparent';this.style.color='var(--text-3)'">
+        <i data-lucide="sun" id="themeIcon" style="width:16px;height:16px;flex-shrink:0"></i>
+        <span id="themeLabel">라이트 모드</span>
+      </button>
       <div class="sidebar-user" id="sidebarUser"></div>
     </div>
   </aside>

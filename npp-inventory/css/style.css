@@ -31,6 +31,34 @@
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
 }
 
+/* ── Light Mode ── */
+body.light {
+  --bg: #f0f2f7;
+  --bg-2: #ffffff;
+  --bg-3: #f5f7fc;
+  --bg-4: #e8ecf5;
+  --border: #d5dae8;
+  --border-2: #b8c0d8;
+  --text-1: #1a2035;
+  --text-2: #4a5568;
+  --text-3: #8896aa;
+  --accent: #3b6af0;
+  --accent-hover: #2a58e0;
+  --accent-light: rgba(59,106,240,0.1);
+  --green: #16a34a;
+  --green-light: rgba(22,163,74,0.1);
+  --amber: #d97706;
+  --amber-light: rgba(217,119,6,0.1);
+  --red: #dc2626;
+  --red-light: rgba(220,38,38,0.1);
+  --purple: #7c3aed;
+  --purple-light: rgba(124,58,237,0.1);
+  --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+}
+body.light ::-webkit-scrollbar-thumb { background: var(--border); }
+body.light ::-webkit-scrollbar-thumb:hover { background: var(--border-2); }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {

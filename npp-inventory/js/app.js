@@ -5,6 +5,8 @@ const App = {
   currentPage: 'dashboard',
 
   async init() {
+    // 저장된 테마 적용
+    App._applyTheme(localStorage.getItem('theme') || 'dark');
     await Auth.init();
 
     if (!Auth.profile) {
@@ -128,6 +130,33 @@ const App = {
       case 'requests':     Requests.render(); break;
       case 'settlement':   Settlement.render(); break;
       case 'settings':     if (Auth.isAdmin()) Settings.render(); break;
+    }
+  },
+
+  toggleTheme() {
+    const current = localStorage.getItem('theme') || 'dark';
+    App._applyTheme(current === 'dark' ? 'light' : 'dark');
+  },
+
+  _applyTheme(theme) {
+    localStorage.setItem('theme', theme);
+    if (theme === 'light') {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+    // 아이콘·레이블 업데이트
+    const icon  = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    if (icon && label) {
+      if (theme === 'light') {
+        icon.setAttribute('data-lucide', 'moon');
+        label.textContent = '다크 모드';
+      } else {
+        icon.setAttribute('data-lucide', 'sun');
+        label.textContent = '라이트 모드';
+      }
+      if (window.lucide) lucide.createIcons();
     }
   },
 
