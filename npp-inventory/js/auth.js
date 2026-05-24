@@ -79,10 +79,14 @@ const Auth = {
   isAdmin() { return Auth.profile?.role === 'admin'; },
   isManager() { return Auth.profile?.role === 'manager'; },
   isClient() { return Auth.profile?.role === 'client'; },
+  isObserver() { return Auth.profile?.role === 'observer'; },
+
+  // 읽기 전용 역할 (observer) — 수정/생성/삭제 불가
+  isReadOnly() { return Auth.isObserver(); },
 
   getRole() { return Auth.profile?.role || ''; },
   getRoleLabel() {
-    const map = { admin: '관리자', manager: '매니저', client: '화주' };
+    const map = { admin: '관리자', manager: '매니저', client: '화주', observer: '열람자' };
     return map[Auth.profile?.role] || '';
   },
 };

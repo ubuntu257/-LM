@@ -13,7 +13,7 @@ const Transactions = {
     UI.loading(el);
 
     const isAdmin = Auth.isAdmin();
-    const canViewAll = Auth.isAdmin() || Auth.isManager();
+    const canViewAll = Auth.isAdmin() || Auth.isManager() || Auth.isObserver();
 
     try {
       this.companies = canViewAll ? await DB.getPermittedCompanies() : [Auth.profile];

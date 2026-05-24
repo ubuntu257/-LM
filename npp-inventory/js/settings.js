@@ -13,11 +13,12 @@ const Settings = {
       this.profiles = await DB.getAllProfiles();
       const clients = this.profiles.filter(p => p.role === 'client');
       const managers = this.profiles.filter(p => p.role === 'manager');
+      const observers = this.profiles.filter(p => p.role === 'observer');
 
       el.innerHTML = `
         <div class="tabs">
           <button class="tab ${this.activeTab === 'companies' ? 'active' : ''}" onclick="Settings.switchTab('companies')">화주 업체 관리</button>
-          <button class="tab ${this.activeTab === 'managers' ? 'active' : ''}" onclick="Settings.switchTab('managers')">매니저 계정 관리</button>
+          <button class="tab ${this.activeTab === 'managers' ? 'active' : ''}" onclick="Settings.switchTab('managers')">매니저·열람자 관리</button>
           <button class="tab ${this.activeTab === 'newaccount' ? 'active' : ''}" onclick="Settings.switchTab('newaccount')">계정 추가</button>
         </div>
 
@@ -54,16 +55,16 @@ const Settings = {
           </div>
         </div>
 
-        <!-- 매니저 탭 -->
+        <!-- 매니저·열람자 탭 -->
         <div id="tab-managers" class="tab-content" style="${this.activeTab !== 'managers' ? 'display:none' : ''}">
           <div class="table-wrap">
             <div class="table-overflow">
               <table class="data-table">
                 <thead><tr>
-                  <th>이름</th><th>코드</th><th>연락처</th><th>접근 가능 업체</th><th>관리</th>
+                  <th>이름</th><th>코드</th><th>역할</th><th>연락처</th><th>접근 가능 업체</th><th>관리</th>
                 </tr></thead>
                 <tbody id="managerList">
-                  ${managers.length === 0 ? '<tr class="empty-row"><td colspan="5">등록된 매니저가 없습니다</td></tr>' : ''}
+                  ${(managers.length + observers.length) === 0 ? '<tr class="empty-row"><td colspan="6">등록된 매니저/열람자가 없습니다</td></tr>' : ''}
                 </tbody>
               </table>
             </div>
@@ -82,7 +83,8 @@ const Settings = {
                 <label class="form-label">역할 *</label>
                 <select class="form-input" id="naRole" required onchange="Settings.toggleRoleFields()">
                   <option value="client">화주 (매입처)</option>
-                  <option value="manager">매니저 (국립공원 담당자)</option>
+                  <option value="manager">매니저 (내부 담당자)</option>
+                  <option value="observer">열람자 (국립공원공단 담당자)</option>
                 </select>
               </div>
               <div class="form-group">
@@ -243,17 +245,20 @@ const Settings = {
 
   async _renderManagerList(managers) {
     const clients = this.profiles.filter(p => p.role === 'client');
+    const observers = this.profiles.filter(p => p.role === 'observer');
     const listEl = document.getElementById('managerList');
     if (!listEl) return;
 
-    if (managers.length === 0) return;
+    if (managers.length === 0 && observers.length === 0) return;
 
-    const rows = await Promise.all(managers.map(async m => {
+    // 매니저 행
+    const managerRows = await Promise.all(managers.map(async m => {
       const permIds = await DB.getManagerPermissions(m.id);
       const permLabels = clients.filter(c => permIds.includes(c.id)).map(c => c.company_name);
       return `<tr>
         <td class="td-main">${m.company_name}</td>
         <td><span class="badge badge-purple">${m.company_code}</span></td>
+        <td><span class="badge badge-blue">매니저</span></td>
         <td style="color:var(--text-2)">${m.contact_phone || '-'}</td>
         <td>
           ${permLabels.length > 0
@@ -269,7 +274,17 @@ const Settings = {
       </tr>`;
     }));
 
-    listEl.innerHTML = rows.join('');
+    // 열람자(observer) 행
+    const observerRows = observers.map(o => `<tr>
+      <td class="td-main">${o.company_name}</td>
+      <td><span class="badge badge-purple">${o.company_code}</span></td>
+      <td><span class="badge badge-gray">열람자</span></td>
+      <td style="color:var(--text-2)">${o.contact_phone || '-'}</td>
+      <td><span style="color:var(--text-3);font-size:0.8rem">전체 열람 가능</span></td>
+      <td><span style="font-size:0.78rem;color:var(--text-3)">읽기 전용</span></td>
+    </tr>`);
+
+    listEl.innerHTML = [...managerRows, ...observerRows].join('');
     UI.icons();
   },
 
@@ -295,6 +310,13 @@ const Settings = {
     document.querySelectorAll('.client-only').forEach(el => {
       el.style.display = role === 'client' ? '' : 'none';
     });
+    // observer는 업체코드 자동 제안
+    const codeInput = document.getElementById('naCode');
+    if (codeInput && role === 'observer') {
+      codeInput.placeholder = '예: KNPS2024 (열람자 ID)';
+    } else if (codeInput) {
+      codeInput.placeholder = '예: KE2024';
+    }
   },
 
   async createAccount(e) {

@@ -11,7 +11,7 @@ const Settlement = {
     const el = document.getElementById('pg-settlement');
     UI.loading(el);
 
-    const canViewAll = Auth.isAdmin() || Auth.isManager();
+    const canViewAll = Auth.isAdmin() || Auth.isManager() || Auth.isObserver();
 
     try {
       this.companies = canViewAll ? await DB.getPermittedCompanies() : [Auth.profile];
