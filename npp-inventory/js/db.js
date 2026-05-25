@@ -292,39 +292,75 @@ const DB = {
 
   // ── Dashboard Stats ──────────────────────
   async getDashboardStats(companyIds) {
-    // 제품 수 및 재고 현황
-    let pq = _sb.from('products').select('id, current_stock, min_stock, company_id').eq('is_active', true);
-    if (companyIds && companyIds.length > 0) pq = pq.in('company_id', companyIds);
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
+    const todayStr = now.toISOString().slice(0,10);
+    const yd = new Date(now); yd.setDate(yd.getDate()-1);
+    const ydStr = yd.toISOString().slice(0,10);
+    const ids = companyIds?.length ? companyIds : null;
+
+    // 제품 (업체 정보 포함)
+    let pq = _sb.from('products')
+      .select('id, name, sku, unit, current_stock, min_stock, company_id, company:user_profiles(company_name, logo_color)')
+      .eq('is_active', true);
+    if (ids) pq = pq.in('company_id', ids);
     const { data: products } = await pq;
 
     // 이번 달 입출고
-    const now = new Date();
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    let tq = _sb.from('transactions').select('type, quantity, company_id').gte('transaction_date', monthStart);
-    if (companyIds && companyIds.length > 0) tq = tq.in('company_id', companyIds);
+    let tq = _sb.from('transactions')
+      .select('type, quantity, company_id, transaction_date')
+      .gte('transaction_date', monthStart);
+    if (ids) tq = tq.in('company_id', ids);
     const { data: txns } = await tq;
 
-    // 대기 중인 출고 요청
-    let rq = _sb.from('outbound_requests').select('id, status, company_id').eq('status', 'pending');
-    if (companyIds && companyIds.length > 0) rq = rq.in('company_id', companyIds);
+    // 대기/확인 요청
+    let rq = _sb.from('outbound_requests').select('id, company_id').eq('status', 'pending');
+    if (ids) rq = rq.in('company_id', ids);
     const { data: pendingReqs } = await rq;
 
-    // 확인완료 대기 요청
     let cq = _sb.from('outbound_requests').select('id, company_id').eq('status', 'confirmed');
-    if (companyIds && companyIds.length > 0) cq = cq.in('company_id', companyIds);
+    if (ids) cq = cq.in('company_id', ids);
     const { data: confirmedReqs } = await cq;
 
-    const totalProducts = products?.length || 0;
-    const lowStock = products?.filter(p => p.current_stock <= p.min_stock).length || 0;
-    const monthInbound = txns?.filter(t => t.type === 'inbound').reduce((s, t) => s + t.quantity, 0) || 0;
-    const monthOutbound = txns?.filter(t => t.type === 'outbound').reduce((s, t) => s + t.quantity, 0) || 0;
+    const prods   = products || [];
+    const txnList = txns     || [];
+
+    // 재고 부족 — 심각한 순 정렬
+    const lowStockProducts = prods
+      .filter(p => p.current_stock <= p.min_stock)
+      .sort((a,b) => (a.current_stock - a.min_stock) - (b.current_stock - b.min_stock));
+
+    // 월간
+    const monthInbound  = txnList.filter(t=>t.type==='inbound' ).reduce((s,t)=>s+t.quantity,0);
+    const monthOutbound = txnList.filter(t=>t.type==='outbound').reduce((s,t)=>s+t.quantity,0);
+
+    // 오늘
+    const todayTxns     = txnList.filter(t=>t.transaction_date===todayStr);
+    const todayInbound  = todayTxns.filter(t=>t.type==='inbound' ).reduce((s,t)=>s+t.quantity,0);
+    const todayOutbound = todayTxns.filter(t=>t.type==='outbound').reduce((s,t)=>s+t.quantity,0);
+    const todayInCount  = todayTxns.filter(t=>t.type==='inbound' ).length;
+    const todayOutCount = todayTxns.filter(t=>t.type==='outbound').length;
+
+    // 어제 (비교용)
+    const ydTxns     = txnList.filter(t=>t.transaction_date===ydStr);
+    const ydInbound  = ydTxns.filter(t=>t.type==='inbound' ).reduce((s,t)=>s+t.quantity,0);
+    const ydOutbound = ydTxns.filter(t=>t.type==='outbound').reduce((s,t)=>s+t.quantity,0);
+
+    // 업체별 이번달 출고량
+    const companyOutbound = {};
+    txnList.filter(t=>t.type==='outbound').forEach(t=>{
+      companyOutbound[t.company_id] = (companyOutbound[t.company_id]||0) + t.quantity;
+    });
 
     return {
-      totalProducts,
-      lowStock,
-      monthInbound,
-      monthOutbound,
-      pendingRequests: pendingReqs?.length || 0,
+      totalProducts: prods.length,
+      lowStock: lowStockProducts.length,
+      lowStockProducts,
+      monthInbound, monthOutbound,
+      todayInbound, todayOutbound, todayInCount, todayOutCount,
+      ydInbound, ydOutbound,
+      companyOutbound,
+      pendingRequests:   pendingReqs?.length   || 0,
       confirmedRequests: confirmedReqs?.length || 0,
     };
   },
