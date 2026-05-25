@@ -486,10 +486,10 @@ const Requests = {
 
     if (!valid) { btn.disabled = false; return; }
 
-    // 회사ID: 수정 시엔 수정 대상의 company, 신규 시엔 hidden field
+    // 회사ID: 수정=hidden에서, 신규=hidden(클라이언트는 본인, 관리자는 선택)
     const companyId = editId
-      ? (() => { /* 수정 시 회사는 변경 불가 — DB에서 조회한 값 사용 */ return document.getElementById('reqCompanyId').value || Auth.profile.id; })()
-      : (document.getElementById('reqCompanyId').value || Auth.profile.id);
+      ? (document.getElementById('reqCompanyId').value || Auth.profile.id)
+      : (document.getElementById('reqCompanyId').value || (Auth.isClient() ? Auth.profile.id : ''));
 
     try {
       if (editId) {
