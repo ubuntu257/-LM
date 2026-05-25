@@ -176,7 +176,7 @@ const Transactions = {
   },
 
   async _load() {
-    const canViewAll = Auth.isAdmin() || Auth.isManager();
+    const canViewAll = Auth.isAdmin() || Auth.isManager() || Auth.isObserver();
     const companyId = Auth.isClient()
       ? Auth.profile.id
       : (this.filterCompany || undefined);
@@ -196,7 +196,7 @@ const Transactions = {
   },
 
   _renderTable(txns) {
-    const canViewAll = Auth.isAdmin() || Auth.isManager();
+    const canViewAll = Auth.isAdmin() || Auth.isManager() || Auth.isObserver();
     const tbody = document.getElementById('txnBody');
     if (!tbody) return;
 

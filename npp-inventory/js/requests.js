@@ -55,6 +55,11 @@ const Requests = {
               <i data-lucide="plus"></i>출고 요청서 작성
             </button>
             ` : ''}
+            ${isAdmin ? `
+            <button class="btn btn-primary btn-sm" onclick="Requests.openAdminCreateModal()">
+              <i data-lucide="plus-circle"></i>요청서 직접 작성
+            </button>
+            ` : ''}
           </div>
         </div>
 
@@ -234,7 +239,18 @@ const Requests = {
           </div>
           <form id="reqForm" onsubmit="Requests.submitForm(event)">
             <input type="hidden" id="reqEditId">
+            <input type="hidden" id="reqCompanyId">
             <div class="modal-body">
+              <!-- 관리자 직접 작성 시: 거래처 선택 -->
+              <div id="reqAdminCompanyWrap" style="display:none;margin-bottom:16px">
+                <div class="form-group" style="margin:0">
+                  <label class="form-label">거래처 *</label>
+                  <select class="form-input" id="reqAdminCompany" onchange="Requests.onAdminCompanyChange()">
+                    <option value="">거래처를 선택하세요</option>
+                    ${this.companies.map(c => `<option value="${c.id}">${c.company_name}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
               <h4 style="font-size:0.88rem;font-weight:700;color:var(--text-2);margin-bottom:12px">1. 수령인 정보</h4>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
                 <div class="form-group" style="margin:0">
@@ -318,10 +334,49 @@ const Requests = {
     document.getElementById('reqFormTitle').textContent = '출고 요청서 작성';
     document.getElementById('reqSubmitBtn').textContent = '요청서 제출';
     document.getElementById('reqEditId').value = '';
+    document.getElementById('reqCompanyId').value = Auth.profile.id;
+    document.getElementById('reqAdminCompanyWrap').style.display = 'none';
     document.getElementById('reqForm').reset();
     document.getElementById('reqItemsContainer').innerHTML = '';
     this.addItemRow();
     UI.openModal('reqFormModal');
+    UI.icons();
+  },
+
+  openAdminCreateModal() {
+    document.getElementById('reqFormTitle').textContent = '출고 요청서 직접 작성 (관리자)';
+    document.getElementById('reqSubmitBtn').textContent = '요청서 제출';
+    document.getElementById('reqEditId').value = '';
+    document.getElementById('reqCompanyId').value = '';
+    document.getElementById('reqAdminCompanyWrap').style.display = '';
+    document.getElementById('reqAdminCompany').value = '';
+    document.getElementById('reqForm').reset();
+    // reset 후 hidden 복원
+    document.getElementById('reqAdminCompanyWrap').style.display = '';
+    document.getElementById('reqItemsContainer').innerHTML =
+      '<div style="color:var(--text-3);font-size:0.85rem;padding:12px 0">거래처를 먼저 선택하면 품목을 추가할 수 있습니다</div>';
+    this.myProducts = [];
+    UI.openModal('reqFormModal');
+    UI.icons();
+  },
+
+  async onAdminCompanyChange() {
+    const companyId = document.getElementById('reqAdminCompany').value;
+    document.getElementById('reqCompanyId').value = companyId;
+    const container = document.getElementById('reqItemsContainer');
+    if (!companyId) {
+      this.myProducts = [];
+      container.innerHTML = '<div style="color:var(--text-3);font-size:0.85rem;padding:12px 0">거래처를 먼저 선택하면 품목을 추가할 수 있습니다</div>';
+      return;
+    }
+    container.innerHTML = '<div class="loading"><div class="spinner"></div>제품 로드 중...</div>';
+    try {
+      this.myProducts = await DB.getProducts(companyId);
+      container.innerHTML = '';
+      this.addItemRow();
+    } catch (err) {
+      container.innerHTML = `<div style="color:var(--red)">제품 로드 오류: ${err.message}</div>`;
+    }
     UI.icons();
   },
 
@@ -339,6 +394,8 @@ const Requests = {
       document.getElementById('reqFormTitle').textContent = `출고 요청서 수정 [${statusLabel[r.status] || r.status}]`;
       document.getElementById('reqSubmitBtn').textContent = '수정 완료';
       document.getElementById('reqEditId').value = id;
+      document.getElementById('reqCompanyId').value = r.company_id || '';
+      document.getElementById('reqAdminCompanyWrap').style.display = 'none';
       document.getElementById('reqRecipient').value = r.recipient_name;
       document.getElementById('reqPhone').value = r.recipient_phone;
       document.getElementById('reqAddress').value = r.address;
@@ -406,7 +463,7 @@ const Requests = {
     const seen = {};
     let valid = true;
 
-    const skipStockCheck = Auth.isAdmin() && !!editId; // 관리자가 기존 요청 수정 시 재고 검증 생략
+    const skipStockCheck = Auth.isAdmin(); // 관리자는 재고 관계없이 처리 가능
 
     rows.forEach(row => {
       const productId = row.querySelector('.req-item-product').value;
@@ -429,13 +486,19 @@ const Requests = {
 
     if (!valid) { btn.disabled = false; return; }
 
+    // 회사ID: 수정 시엔 수정 대상의 company, 신규 시엔 hidden field
+    const companyId = editId
+      ? (() => { /* 수정 시 회사는 변경 불가 — DB에서 조회한 값 사용 */ return document.getElementById('reqCompanyId').value || Auth.profile.id; })()
+      : (document.getElementById('reqCompanyId').value || Auth.profile.id);
+
     try {
       if (editId) {
         await DB.updateRequest(editId, { recipientName, recipientPhone, address, message, items });
         UI.toast('수정되었습니다');
       } else {
+        if (!companyId) { UI.toast('거래처를 선택해주세요', 'danger'); btn.disabled = false; return; }
         await DB.createRequest({
-          companyId: Auth.profile.id,
+          companyId,
           recipientName, recipientPhone, address, message, items,
         });
         UI.toast('출고 요청서가 제출되었습니다');
