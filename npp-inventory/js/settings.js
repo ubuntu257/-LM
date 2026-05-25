@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════
-// Settings Page (관리자 전용)
+// Settings Page (관리자 + 열람자 읽기 전용)
 // ═══════════════════════════════════════════
 const Settings = {
   profiles: [],
@@ -9,17 +9,26 @@ const Settings = {
     const el = document.getElementById('pg-settings');
     UI.loading(el);
 
+    const isReadOnly = Auth.isObserver(); // 열람자: 읽기 전용
+
     try {
       this.profiles = await DB.getAllProfilesAll();  // 비활성 포함 전체 조회
       const clients = this.profiles.filter(p => p.role === 'client');
       const managers = this.profiles.filter(p => p.role === 'manager');
       const observers = this.profiles.filter(p => p.role === 'observer');
 
+      // 열람자가 'newaccount' 탭에 있었다면 companies로 리셋
+      if (isReadOnly && this.activeTab === 'newaccount') this.activeTab = 'companies';
+
       el.innerHTML = `
+        ${isReadOnly ? `<div class="alert alert-info" style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <i data-lucide="eye" style="width:15px;height:15px;flex-shrink:0"></i>
+          <span>열람 전용 모드 — 등록·수정·삭제 기능이 제한됩니다</span>
+        </div>` : ''}
         <div class="tabs">
           <button class="tab ${this.activeTab === 'companies' ? 'active' : ''}" onclick="Settings.switchTab('companies')">화주 업체 관리</button>
           <button class="tab ${this.activeTab === 'managers' ? 'active' : ''}" onclick="Settings.switchTab('managers')">매니저·열람자 관리</button>
-          <button class="tab ${this.activeTab === 'newaccount' ? 'active' : ''}" onclick="Settings.switchTab('newaccount')">계정 추가</button>
+          ${!isReadOnly ? `<button class="tab ${this.activeTab === 'newaccount' ? 'active' : ''}" onclick="Settings.switchTab('newaccount')">계정 추가</button>` : ''}
         </div>
 
         <!-- 화주 업체 탭 -->
@@ -30,6 +39,7 @@ const Settings = {
               <button class="btn btn-secondary btn-sm" onclick="Settings.downloadCompanies()">
                 <i data-lucide="file-down"></i>업체목록 다운로드
               </button>
+              ${!isReadOnly ? `
               <button class="btn btn-secondary btn-sm" onclick="Settings.downloadCompanyTemplate()">
                 <i data-lucide="download"></i>업로드 양식
               </button>
@@ -37,6 +47,7 @@ const Settings = {
                 <i data-lucide="upload"></i>업체정보 업로드
                 <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="Settings.handleCompanyUpload(event)">
               </label>
+              ` : ''}
             </div>
           </div>
           <div class="table-wrap">
@@ -44,11 +55,12 @@ const Settings = {
               <table class="data-table">
                 <thead><tr>
                   <th>업체명</th><th>업체코드</th><th>담당자</th><th>연락처</th>
-                  <th>사업자번호</th><th>계약일</th><th>제품수</th><th>상태</th><th>관리</th>
+                  <th>사업자번호</th><th>계약일</th><th>제품수</th><th>상태</th>
+                  ${!isReadOnly ? '<th>관리</th>' : ''}
                 </tr></thead>
                 <tbody>
-                  ${clients.map(c => this._clientRow(c)).join('')}
-                  ${clients.length === 0 ? '<tr class="empty-row"><td colspan="8">등록된 화주가 없습니다</td></tr>' : ''}
+                  ${clients.map(c => this._clientRow(c, isReadOnly)).join('')}
+                  ${clients.length === 0 ? '<tr class="empty-row"><td colspan="9">등록된 화주가 없습니다</td></tr>' : ''}
                 </tbody>
               </table>
             </div>
@@ -61,7 +73,8 @@ const Settings = {
             <div class="table-overflow">
               <table class="data-table">
                 <thead><tr>
-                  <th>이름</th><th>코드</th><th>역할</th><th>연락처</th><th>접근 가능 업체</th><th>관리</th>
+                  <th>이름</th><th>코드</th><th>역할</th><th>연락처</th><th>접근 가능 업체</th>
+                  ${!isReadOnly ? '<th>관리</th>' : ''}
                 </tr></thead>
                 <tbody id="managerList">
                   ${(managers.length + observers.length) === 0 ? '<tr class="empty-row"><td colspan="6">등록된 매니저/열람자가 없습니다</td></tr>' : ''}
@@ -71,7 +84,7 @@ const Settings = {
           </div>
         </div>
 
-        <!-- 계정 추가 탭 -->
+        <!-- 계정 추가 탭 (관리자 전용) -->
         <div id="tab-newaccount" class="tab-content card" style="${this.activeTab !== 'newaccount' ? 'display:none' : ''}">
           <h3 style="font-size:0.95rem;font-weight:700;margin-bottom:20px;color:var(--text-1)">새 계정 추가</h3>
           <div class="alert alert-info" style="margin-bottom:20px">
@@ -278,14 +291,27 @@ const Settings = {
       `;
 
       UI.icons();
-      if (this.activeTab === 'managers') await this._renderManagerList(managers);
+      if (this.activeTab === 'managers') await this._renderManagerList(managers, isReadOnly);
+      // 제품 수 비동기 로드
+      this._loadProductCounts(clients);
 
     } catch (err) {
       el.innerHTML = `<div class="alert alert-danger">오류: ${err.message}</div>`;
     }
   },
 
-  _clientRow(c) {
+  async _loadProductCounts(clients) {
+    for (const c of clients) {
+      const el = document.getElementById(`prodCount-${c.id}`);
+      if (!el) continue;
+      try {
+        const prods = await DB.getProducts(c.id);
+        el.textContent = prods.length;
+      } catch (_) { el.textContent = '-'; }
+    }
+  },
+
+  _clientRow(c, isReadOnly = false) {
     const isActive = c.is_active !== false;
     return `<tr style="opacity:${isActive ? '1' : '0.55'}">
       <td>
@@ -306,7 +332,7 @@ const Settings = {
           : '<span class="badge badge-red">미사용</span>'
         }
       </td>
-      <td>
+      ${!isReadOnly ? `<td>
         <div style="display:flex;gap:5px;flex-wrap:wrap">
           <button class="btn btn-sm btn-secondary" onclick="Settings.openEditModal('${c.id}')">
             <i data-lucide="pencil"></i>수정
@@ -319,11 +345,12 @@ const Settings = {
             <i data-lucide="${isActive ? 'user-x' : 'user-check'}"></i>${isActive ? '미사용' : '사용'}
           </button>
         </div>
-      </td>
+      </td>` : ''}
     </tr>`;
   },
 
-  async _renderManagerList(managers) {
+  async _renderManagerList(managers, isReadOnly = false) {
+    isReadOnly = isReadOnly ?? Auth.isObserver();
     const clients = this.profiles.filter(p => p.role === 'client');
     const observers = this.profiles.filter(p => p.role === 'observer');
     const listEl = document.getElementById('managerList');
@@ -346,7 +373,7 @@ const Settings = {
             : '<span style="color:var(--text-3);font-size:0.8rem">권한 없음</span>'
           }
         </td>
-        <td>
+        ${!isReadOnly ? `<td>
           <div style="display:flex;gap:5px;flex-wrap:wrap">
             <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${m.id}','${m.company_name}')">
               <i data-lucide="key"></i>비밀번호
@@ -358,7 +385,7 @@ const Settings = {
               <i data-lucide="shield"></i>권한 설정
             </button>
           </div>
-        </td>
+        </td>` : ''}
       </tr>`;
     }));
 
@@ -369,7 +396,7 @@ const Settings = {
       <td><span class="badge badge-gray">열람자</span></td>
       <td style="color:var(--text-2)">${o.contact_phone || '-'}</td>
       <td><span style="color:var(--text-3);font-size:0.8rem">전체 열람 가능</span></td>
-      <td>
+      ${!isReadOnly ? `<td>
         <div style="display:flex;gap:5px">
           <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${o.id}','${o.company_name}')">
             <i data-lucide="key"></i>비밀번호
@@ -378,7 +405,7 @@ const Settings = {
             <i data-lucide="at-sign"></i>코드변경
           </button>
         </div>
-      </td>
+      </td>` : ''}
     </tr>`);
 
     listEl.innerHTML = [...managerRows, ...observerRows].join('');
@@ -386,9 +413,13 @@ const Settings = {
   },
 
   switchTab(tab) {
+    // 열람자는 newaccount 탭 접근 불가
+    if (Auth.isObserver() && tab === 'newaccount') return;
+
     this.activeTab = tab;
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.getElementById(`tab-${tab}`).style.display = '';
+    const tabEl = document.getElementById(`tab-${tab}`);
+    if (tabEl) tabEl.style.display = '';
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => {
       if (t.textContent.includes(tab === 'companies' ? '화주' : tab === 'managers' ? '매니저' : '계정')) {
@@ -398,7 +429,7 @@ const Settings = {
 
     if (tab === 'managers') {
       const managers = this.profiles.filter(p => p.role === 'manager');
-      this._renderManagerList(managers);
+      this._renderManagerList(managers, Auth.isObserver());
     }
   },
 
@@ -720,7 +751,7 @@ const Settings = {
       UI.toast('권한이 저장되었습니다');
       UI.closeModal('managerPermModal');
       const managers = this.profiles.filter(p => p.role === 'manager');
-      await this._renderManagerList(managers);
+      await this._renderManagerList(managers, Auth.isObserver());
     } catch (err) {
       UI.toast('오류: ' + err.message, 'danger');
     }

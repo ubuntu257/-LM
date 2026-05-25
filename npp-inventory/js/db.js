@@ -89,12 +89,31 @@ const DB = {
 
   async createProduct(data) {
     const { error } = await _sb.from('products').insert(data);
-    if (error) throw error;
+    if (error) {
+      // consumer_price 컬럼 미생성 시 해당 필드 제외 후 재시도
+      if (error.message?.includes('consumer_price')) {
+        const { consumer_price, ...rest } = data;
+        const { error: e2 } = await _sb.from('products').insert(rest);
+        if (e2) throw e2;
+        return;
+      }
+      throw error;
+    }
   },
 
   async updateProduct(id, updates) {
-    const { error } = await _sb.from('products').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
-    if (error) throw error;
+    const payload = { ...updates, updated_at: new Date().toISOString() };
+    const { error } = await _sb.from('products').update(payload).eq('id', id);
+    if (error) {
+      // consumer_price 컬럼 미생성 시 해당 필드 제외 후 재시도
+      if (error.message?.includes('consumer_price')) {
+        const { consumer_price, ...rest } = payload;
+        const { error: e2 } = await _sb.from('products').update(rest).eq('id', id);
+        if (e2) throw e2;
+        return;
+      }
+      throw error;
+    }
   },
 
   async deleteProduct(id) {

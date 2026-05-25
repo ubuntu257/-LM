@@ -61,9 +61,9 @@ const App = {
       el.style.display = isAdmin ? '' : 'none';
     });
 
-    // 설정 메뉴 — 관리자만 표시 (observer 포함 나머지 숨김)
+    // 설정 메뉴 — 관리자 + 열람자 표시 (열람자는 읽기 전용으로 렌더)
     const settingsNav = document.querySelector('.nav-item[data-page="settings"]');
-    if (settingsNav) settingsNav.style.display = isAdmin ? '' : 'none';
+    if (settingsNav) settingsNav.style.display = (isAdmin || Auth.isObserver()) ? '' : 'none';
 
     // 사이드바 유저 정보
     const initial = profile.company_name.charAt(0);
@@ -129,7 +129,7 @@ const App = {
       case 'transactions': Transactions.render(); break;
       case 'requests':     Requests.render(); break;
       case 'settlement':   Settlement.render(); break;
-      case 'settings':     if (Auth.isAdmin()) Settings.render(); break;
+      case 'settings':     if (Auth.isAdmin() || Auth.isObserver()) Settings.render(); break;
     }
   },
 
