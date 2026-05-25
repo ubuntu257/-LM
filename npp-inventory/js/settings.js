@@ -542,10 +542,10 @@ const Settings = {
 
     try {
       await Auth.createUser(code, password, profileData);
-      UI.toast(`"${name}" 계정이 생성되었습니다`);
+      UI.toast(`"${name}" 계정이 생성되었습니다 ✓`, 'success');
       document.getElementById('newAccountForm').reset();
       document.getElementById('naColor').value = '#6366f1';
-      this.profiles = await DB.getAllProfiles();
+      this.profiles = await DB.getAllProfilesAll();
     } catch (err) {
       UI.toast('오류: ' + err.message, 'danger');
     } finally {

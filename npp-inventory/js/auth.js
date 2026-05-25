@@ -45,35 +45,26 @@ const Auth = {
     location.reload();
   },
 
-  // 관리자가 새 업체 계정 생성 (기존 세션 유지)
+  // 관리자가 새 업체 계정 생성 (RPC 사용, 세션 영향 없음)
   async createUser(code, password, profileData) {
     if (!Auth.isAdmin()) throw new Error('관리자만 계정을 생성할 수 있습니다');
 
-    const { data: { session: adminSession } } = await _sb.auth.getSession();
-    const email = `${code.trim().toLowerCase()}@npp.internal`;
-
-    const { data, error } = await _sb.auth.signUp({ email, password });
-    if (error) throw error;
-
-    const newUserId = data.user.id;
-
-    // 관리자 세션 복구
-    if (adminSession) {
-      await _sb.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-    }
-
-    // 프로필 생성 (관리자 권한으로)
-    const { error: profileError } = await _sb.from('user_profiles').insert({
-      id: newUserId,
-      company_code: code.trim().toUpperCase(),
-      ...profileData,
+    const { data, error } = await _sb.rpc('admin_create_user', {
+      p_company_code:   code.trim(),
+      p_password:       password,
+      p_role:           profileData.role,
+      p_company_name:   profileData.company_name,
+      p_contact_name:   profileData.contact_name  || null,
+      p_contact_phone:  profileData.contact_phone || null,
+      p_logo_color:     profileData.logo_color    || '#6366f1',
+      p_business_number: profileData.business_number || null,
+      p_contract_date:  profileData.contract_date  || null,
+      p_address:        profileData.address        || null,
+      p_account_number: profileData.account_number || null,
     });
-    if (profileError) throw profileError;
 
-    return newUserId;
+    if (error) throw error;
+    return data; // 생성된 user UUID
   },
 
   isAdmin() { return Auth.profile?.role === 'admin'; },
