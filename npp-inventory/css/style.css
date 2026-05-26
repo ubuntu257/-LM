@@ -859,4 +859,20 @@ select.form-input option { background: var(--bg-3); }
   .topbar { padding: 0 16px; }
   .modal { max-width: 100%; }
   .req-item-row { grid-template-columns: 1fr 90px 36px; }
+
+  /* ── 재고 테이블 모바일 최적화 ── */
+  .inv-table .col-sku,
+  .inv-table .col-min-stock,
+  .inv-table .col-location,
+  .inv-table .col-buy-price,
+  .inv-table .col-sell-price,
+  .inv-table .col-status { display: none; }
+
+  .inv-table .col-company { max-width: 90px; }
+  .inv-table .col-company span { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+  .inv-table .td-main { min-width: 120px; }
+  .inv-mobile-meta { margin-top: 2px; }
+
+  .hide-mobile { display: none; }
 }

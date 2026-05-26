@@ -59,18 +59,18 @@ const Inventory = {
 
         <div class="table-wrap">
           <div class="table-overflow">
-            <table class="data-table">
+            <table class="data-table inv-table">
               <thead><tr>
-                ${canViewAll ? '<th>업체</th>' : ''}
+                ${canViewAll ? '<th class="col-company">업체</th>' : ''}
                 <th>제품명</th>
-                <th>SKU</th>
+                <th class="col-sku">SKU</th>
                 <th>현재 재고</th>
-                <th>최소 재고</th>
-                <th>보관 위치</th>
-                ${isAdmin ? '<th>매입 단가</th>' : ''}
-                <th>소비자가격</th>
-                <th>상태</th>
-                ${isAdmin ? '<th>관리</th>' : ''}
+                <th class="col-min-stock">최소 재고</th>
+                <th class="col-location">보관 위치</th>
+                ${isAdmin ? '<th class="col-buy-price">매입 단가</th>' : ''}
+                <th class="col-sell-price">소비자가격</th>
+                <th class="col-status">상태</th>
+                ${isAdmin ? '<th class="col-actions">관리</th>' : ''}
               </tr></thead>
               <tbody id="invBody"></tbody>
             </table>
@@ -226,14 +226,20 @@ const Inventory = {
       const barColor = isLow ? 'var(--red)' : p.current_stock < p.min_stock * 2 ? 'var(--amber)' : 'var(--green)';
 
       return `<tr>
-        ${canViewAll ? `<td>
+        ${canViewAll ? `<td class="col-company">
           <div style="display:flex;align-items:center;gap:7px">
             <div style="width:8px;height:8px;border-radius:50%;background:${p.company?.logo_color || '#6366f1'};flex-shrink:0"></div>
             <span style="font-size:0.8rem;color:var(--text-2)">${p.company?.company_name || '-'}</span>
           </div>
         </td>` : ''}
-        <td class="td-main">${p.name}</td>
-        <td style="color:var(--text-3);font-family:monospace;font-size:0.82rem">${p.sku || '-'}</td>
+        <td class="td-main">
+          <div>${p.name}</div>
+          ${canViewAll ? '' : `<div class="inv-mobile-meta">
+            <span style="font-size:0.75rem;color:var(--text-3);font-family:monospace">${p.sku || ''}</span>
+            ${p.location ? `<span style="font-size:0.75rem;color:var(--text-3)"> · ${p.location}</span>` : ''}
+          </div>`}
+        </td>
+        <td class="col-sku" style="color:var(--text-3);font-family:monospace;font-size:0.82rem">${p.sku || '-'}</td>
         <td>
           <div class="stock-bar-wrap">
             <strong style="color:${isLow ? 'var(--red)' : 'var(--text-1)'}">
@@ -244,20 +250,20 @@ const Inventory = {
             <div class="stock-bar-fill" style="width:${stockPct}%;background:${barColor}"></div>
           </div>
         </td>
-        <td style="color:var(--text-3)">${UI.fmtNum(p.min_stock)}${p.unit}</td>
-        <td style="color:var(--text-2);font-size:0.82rem">${p.location || '-'}</td>
-        ${isAdmin ? `<td style="color:var(--text-2)">${UI.fmtMoney(p.purchase_price)}</td>` : ''}
-        <td style="color:var(--text-2)">${p.consumer_price ? UI.fmtMoney(p.consumer_price) : '-'}</td>
-        <td>
+        <td class="col-min-stock" style="color:var(--text-3)">${UI.fmtNum(p.min_stock)}${p.unit}</td>
+        <td class="col-location" style="color:var(--text-2);font-size:0.82rem">${p.location || '-'}</td>
+        ${isAdmin ? `<td class="col-buy-price" style="color:var(--text-2)">${UI.fmtMoney(p.purchase_price)}</td>` : ''}
+        <td class="col-sell-price" style="color:var(--text-2)">${p.consumer_price ? UI.fmtMoney(p.consumer_price) : '-'}</td>
+        <td class="col-status">
           ${isLow
             ? '<span class="badge badge-red">재고 부족</span>'
             : '<span class="badge badge-green">정상</span>'
           }
         </td>
-        ${isAdmin ? `<td>
+        ${isAdmin ? `<td class="col-actions">
           <div style="display:flex;gap:6px">
             <button class="btn btn-sm btn-secondary" onclick="Inventory.openEditModal('${p.id}')">
-              <i data-lucide="pencil"></i>수정
+              <i data-lucide="pencil"></i><span class="hide-mobile">수정</span>
             </button>
             <button class="btn btn-sm btn-danger" onclick="Inventory.deleteProduct('${p.id}')">
               <i data-lucide="trash-2"></i>
