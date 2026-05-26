@@ -800,6 +800,99 @@ select.form-input option { background: var(--bg-3); }
   color: var(--accent);
 }
 
+/* ── Company Selector (재고 업체 선택 칩 바) ── */
+.company-selector-wrap {
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.company-selector-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 8px;
+  width: 40px;
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+}
+
+.company-selector {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-4) transparent;
+}
+
+.company-selector::-webkit-scrollbar { height: 4px; }
+.company-selector::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 2px; }
+
+.company-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px 6px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.company-chip:hover {
+  border-color: var(--border-2);
+  color: var(--text-1);
+  background: var(--bg-3);
+}
+
+.company-chip.active {
+  background: var(--accent-light);
+  border-color: rgba(79,126,248,0.45);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chip-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-count {
+  font-size: 0.72rem;
+  color: var(--text-3);
+  background: var(--bg-4);
+  padding: 1px 7px;
+  border-radius: 10px;
+  line-height: 1.6;
+}
+
+.company-chip.active .chip-count {
+  background: rgba(79,126,248,0.15);
+  color: var(--accent);
+}
+
+.chip-low {
+  color: var(--red);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
 /* ── Request items form ── */
 .req-items-container {
   background: var(--bg-3);

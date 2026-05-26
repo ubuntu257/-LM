@@ -8,6 +8,7 @@ const Inventory = {
   filterSearch: '',
   editingId: null,
   productRowCount: 0,
+  _allProductsCache: null,
 
   async render() {
     const el = document.getElementById('pg-inventory');
@@ -26,15 +27,40 @@ const Inventory = {
 
       this.products = await DB.getProducts(Auth.isClient() ? Auth.profile.id : (this.filterCompany || undefined));
 
+      // 업체별 제품수·부족재고 집계 — 전체 통계용 (filterCompany가 있으면 별도 로드)
+      if (canViewAll && !this._allProductsCache) {
+        this._allProductsCache = await DB.getProducts(undefined);
+      }
+      const allProducts = canViewAll ? (this._allProductsCache || this.products) : this.products;
+
       el.innerHTML = `
+        ${canViewAll && this.companies.length > 1 ? `
+        <div class="company-selector-wrap">
+          <div class="company-selector" id="companySelectorRow">
+            <button class="company-chip ${!this.filterCompany ? 'active' : ''}"
+              data-company-id="" onclick="Inventory.selectCompany('')">
+              <span class="chip-dot" style="background:var(--accent)"></span>
+              <span class="chip-name">전체 업체</span>
+              <span class="chip-count">${allProducts.length}</span>
+            </button>
+            ${this.companies.map(c => {
+              const cnt  = allProducts.filter(p => p.company_id === c.id).length;
+              const low  = allProducts.filter(p => p.company_id === c.id && p.current_stock <= p.min_stock).length;
+              const isAct = this.filterCompany === c.id;
+              return `<button class="company-chip ${isAct ? 'active' : ''}"
+                data-company-id="${c.id}" onclick="Inventory.selectCompany('${c.id}')"
+                ${isAct ? `style="--chip-active-color:${c.logo_color}"` : ''}>
+                <span class="chip-dot" style="background:${c.logo_color}"></span>
+                <span class="chip-name">${c.company_name}</span>
+                <span class="chip-count">${cnt}${low > 0 ? `<span class="chip-low"> ${low}↓</span>` : ''}</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+        ` : ''}
+
         <div class="toolbar">
           <div class="toolbar-filters">
-            ${canViewAll && this.companies.length > 1 ? `
-            <select class="filter-select" id="invCompanyFilter">
-              <option value="">전체 업체</option>
-              ${this.companies.map(c => `<option value="${c.id}" ${this.filterCompany === c.id ? 'selected' : ''}>${c.company_name}</option>`).join('')}
-            </select>
-            ` : ''}
             <input type="text" class="filter-select" id="invSearch" placeholder="제품명/SKU 검색..."
               value="${this.filterSearch}" style="width:200px">
           </div>
@@ -190,11 +216,10 @@ const Inventory = {
         this.filterSearch = e.target.value;
         this._renderTable();
       });
-      document.getElementById('invCompanyFilter')?.addEventListener('change', async e => {
-        this.filterCompany = e.target.value;
-        this.products = await DB.getProducts(this.filterCompany || undefined);
-        this._renderTable();
-      });
+
+      // 선택된 업체 칩 스크롤 보이기
+      const activeChip = document.querySelector('.company-chip.active');
+      if (activeChip) activeChip.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
       this._renderTable();
       UI.icons();
@@ -274,6 +299,39 @@ const Inventory = {
     }).join('');
 
     UI.icons();
+  },
+
+  // ── 업체 선택 (칩 클릭) ──────────────────────
+  async selectCompany(companyId) {
+    this.filterCompany = companyId;
+    this.filterSearch = '';
+
+    // 칩 active 상태 즉시 업데이트
+    document.querySelectorAll('.company-chip').forEach(el => {
+      const id = el.dataset.companyId;
+      el.classList.toggle('active', id === companyId);
+    });
+
+    // 선택된 칩 스크롤
+    const active = document.querySelector('.company-chip.active');
+    if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+    // 헤더 업데이트
+    const sel = this.companies.find(c => c.id === companyId);
+    const titleEl = document.querySelector('.company-selector-title');
+    if (titleEl) titleEl.textContent = sel ? sel.company_name : '전체 업체';
+
+    // 제품 다시 로드
+    const tbody = document.getElementById('invBody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-3)"><div class="spinner" style="margin:0 auto"></div></td></tr>`;
+
+    this.products = await DB.getProducts(companyId || undefined);
+    // 전체 선택 시 캐시 갱신
+    if (!companyId) this._allProductsCache = this.products;
+
+    const searchEl = document.getElementById('invSearch');
+    if (searchEl) searchEl.value = '';
+    this._renderTable();
   },
 
   openBatchAddModal() {
