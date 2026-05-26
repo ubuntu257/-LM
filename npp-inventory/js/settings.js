@@ -52,10 +52,16 @@ const Settings = {
           </div>
           <div class="table-wrap">
             <div class="table-overflow">
-              <table class="data-table">
+              <table class="data-table settings-client-table">
                 <thead><tr>
-                  <th>업체명</th><th>업체코드</th><th>담당자</th><th>연락처</th>
-                  <th>사업자번호</th><th>계약일</th><th>제품수</th><th>상태</th>
+                  <th>업체명</th>
+                  <th class="s-col-code">업체코드</th>
+                  <th class="s-col-contact">담당자</th>
+                  <th class="s-col-phone">연락처</th>
+                  <th class="s-col-biz">사업자번호</th>
+                  <th class="s-col-date">계약일</th>
+                  <th class="s-col-count">제품수</th>
+                  <th>상태</th>
                   ${!isReadOnly ? '<th>관리</th>' : ''}
                 </tr></thead>
                 <tbody>
@@ -91,7 +97,7 @@ const Settings = {
             계정 생성 후 해당 업체코드와 설정한 비밀번호로 로그인할 수 있습니다.
           </div>
           <form id="newAccountForm" onsubmit="Settings.createAccount(event)">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="form-grid-2">
               <div class="form-group">
                 <label class="form-label">역할 *</label>
                 <select class="form-input" id="naRole" required onchange="Settings.toggleRoleFields()">
@@ -160,7 +166,7 @@ const Settings = {
               <input type="hidden" id="ecId">
               <input type="hidden" id="ecOrigCode">
               <div class="modal-body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-grid-2">
                   <div class="form-group" style="margin:0">
                     <label class="form-label">업체코드 (로그인 ID)</label>
                     <input class="form-input" id="ecCode" required placeholder="예: KE2024" style="text-transform:uppercase;font-weight:700;letter-spacing:0.05em">
@@ -317,15 +323,21 @@ const Settings = {
       <td>
         <div style="display:flex;align-items:center;gap:9px">
           <div style="width:10px;height:10px;border-radius:50%;background:${c.logo_color};flex-shrink:0"></div>
-          <span class="td-main">${c.company_name}</span>
+          <div>
+            <div class="td-main">${c.company_name}</div>
+            <div class="s-mobile-sub">
+              <span class="badge badge-blue" style="font-size:0.65rem">${c.company_code}</span>
+              ${c.contact_phone ? `<span style="font-size:0.72rem;color:var(--text-3);margin-left:4px">${c.contact_phone}</span>` : ''}
+            </div>
+          </div>
         </div>
       </td>
-      <td><span class="badge badge-blue">${c.company_code}</span></td>
-      <td style="color:var(--text-2)">${c.contact_name || '-'}</td>
-      <td style="color:var(--text-2)">${c.contact_phone || '-'}</td>
-      <td style="color:var(--text-3);font-size:0.8rem">${c.business_number || '-'}</td>
-      <td style="color:var(--text-3);font-size:0.8rem">${c.contract_date || '-'}</td>
-      <td style="font-weight:600" id="prodCount-${c.id}">-</td>
+      <td class="s-col-code"><span class="badge badge-blue">${c.company_code}</span></td>
+      <td class="s-col-contact" style="color:var(--text-2)">${c.contact_name || '-'}</td>
+      <td class="s-col-phone" style="color:var(--text-2)">${c.contact_phone || '-'}</td>
+      <td class="s-col-biz" style="color:var(--text-3);font-size:0.8rem">${c.business_number || '-'}</td>
+      <td class="s-col-date" style="color:var(--text-3);font-size:0.8rem">${c.contract_date || '-'}</td>
+      <td class="s-col-count" style="font-weight:600" id="prodCount-${c.id}">-</td>
       <td>
         ${isActive
           ? '<span class="badge badge-green">사용</span>'
@@ -335,14 +347,14 @@ const Settings = {
       ${!isReadOnly ? `<td>
         <div style="display:flex;gap:5px;flex-wrap:wrap">
           <button class="btn btn-sm btn-secondary" onclick="Settings.openEditModal('${c.id}')">
-            <i data-lucide="pencil"></i>수정
+            <i data-lucide="pencil"></i><span class="hide-mobile">수정</span>
           </button>
           <button class="btn btn-sm btn-secondary" onclick="Settings.openPasswordModal('${c.id}','${c.company_name}')">
-            <i data-lucide="key"></i>비밀번호
+            <i data-lucide="key"></i><span class="hide-mobile">비밀번호</span>
           </button>
           <button class="btn btn-sm ${isActive ? 'btn-danger' : 'btn-success'}"
             onclick="Settings.toggleActive('${c.id}', ${isActive}, '${c.company_name}')">
-            <i data-lucide="${isActive ? 'user-x' : 'user-check'}"></i>${isActive ? '미사용' : '사용'}
+            <i data-lucide="${isActive ? 'user-x' : 'user-check'}"></i><span class="hide-mobile">${isActive ? '미사용' : '사용'}</span>
           </button>
         </div>
       </td>` : ''}

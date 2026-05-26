@@ -893,6 +893,16 @@ select.form-input option { background: var(--bg-3); }
   font-weight: 700;
 }
 
+/* ── 2-col form grid (모달/폼 공통) ── */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 설정 페이지 모바일 서브텍스트 (기본 숨김) */
+.s-mobile-sub { display: none; }
+
 /* ── Request items form ── */
 .req-items-container {
   background: var(--bg-3);
@@ -968,4 +978,19 @@ select.form-input option { background: var(--bg-3); }
   .inv-mobile-meta { margin-top: 2px; }
 
   .hide-mobile { display: none; }
+
+  /* ── 설정 업체 테이블 모바일 최적화 ── */
+  .settings-client-table .s-col-code,
+  .settings-client-table .s-col-contact,
+  .settings-client-table .s-col-phone,
+  .settings-client-table .s-col-biz,
+  .settings-client-table .s-col-date,
+  .settings-client-table .s-col-count { display: none; }
+
+  /* 업체명 셀에 코드·연락처 서브텍스트 표시 */
+  .s-mobile-sub { display: block; margin-top: 3px; }
+
+  /* 수정 모달 / 계정추가 폼: 1열로 변경 */
+  .form-grid-2 { grid-template-columns: 1fr; }
+  /* grid-column:1/-1 은 1열에서도 동작하므로 별도 처리 불필요 */
 }
