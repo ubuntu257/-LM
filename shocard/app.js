@@ -13,12 +13,12 @@ const state = {
   brandColor: '#cc0000',
   priceColor: '#111111',
   perPage: 'auto',
-  cardWidthMm: 65,   // mm
-  cardHeightMm: 35,  // mm
-  nameSize: 16,      // px
-  brandSize: 14,     // px
-  brandNameGap: 5,   // px
-  priceSize: 30,     // px
+  cardWidthMm: 63,   // mm
+  cardHeightMm: 45,  // mm
+  nameSize: 18,      // px
+  brandSize: 16,     // px
+  brandNameGap: 16,  // px
+  priceSize: 38,     // px
   promoBadgeSize: 15,  // px
   origPriceSize: 18,   // px
   salePriceSize: 37,   // px
