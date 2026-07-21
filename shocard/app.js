@@ -5,6 +5,7 @@
 /* ── 상태 ── */
 const state = {
   items: [],
+  template: 'basic',   // 'basic' | 'multilang'
   theme: 'beige',
   bgImageUrl: null,
   cols: 4,
@@ -22,6 +23,7 @@ const state = {
   promoBadgeSize: 15,  // px
   origPriceSize: 18,   // px
   salePriceSize: 37,   // px
+  subNameSize: 11,     // px (다국어 번역명)
 };
 
 /* ── DOM 참조 ── */
@@ -35,6 +37,10 @@ const bgFilename       = $('bgFilename');
 const clearBgBtn       = $('clearBgBtn');
 const customBgZone     = $('customBgZone');
 const bgCustomThumb    = $('bgCustomThumb');
+const templateSelect   = $('templateSelect');
+const subNameSizeInput = $('subNameSizeInput');
+const subNameSizeRow   = $('subNameSizeRow');
+const multilangFields  = $('multilangFields');
 const colsSelect       = $('colsSelect');
 const currencySelect   = $('currencySelect');
 const brandColorPicker = $('brandColorPicker');
@@ -60,7 +66,7 @@ const promoBadgeSizeInput = $('promoBadgeSizeInput');
 const origPriceSizeInput = $('origPriceSizeInput');
 const salePriceSizeInput = $('salePriceSizeInput');
 
-/* ── 엑셀 파싱 (A=상품명 B=브랜드명 C=가격 D=할인문구 E=행사가격) ── */
+/* ── 엑셀 파싱 (A=상품명 B=브랜드명 C=가격 D=할인문구 E=행사가격 F=영문 G=중국어 H=일본어) ── */
 function parseExcel(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -92,6 +98,9 @@ function parseExcel(file) {
         const promo     = row[3] != null ? String(row[3]).trim() : '';
         const saleRaw   = row[4] != null ? String(row[4]).trim() : '';
         const salePrice = saleRaw.replace(/[^0-9]/g, '');
+        const nameEn    = row[5] != null ? String(row[5]).trim() : '';
+        const nameZh    = row[6] != null ? String(row[6]).trim() : '';
+        const nameJa    = row[7] != null ? String(row[7]).trim() : '';
 
         if (!price) continue;
 
@@ -102,6 +111,9 @@ function parseExcel(file) {
           price,
           promo,
           salePrice,
+          nameEn,
+          nameZh,
+          nameJa,
         });
       }
 
@@ -212,15 +224,35 @@ function buildCardHTML(item, isPrint = false) {
 
   const priceSection = buildPriceSection(item);
 
+  // 상품명 영역: 다국어 양식이면 한글 밑에 영/중/일 줄 추가
+  const nameColorStyle = `color:${escHtml(state.nameColor)}`;
+  let nameBlock;
+  if (state.template === 'multilang') {
+    const subLine = (val, langCls) => val
+      ? `<div class="card-name-sub ${langCls}" style="${nameColorStyle}">${escHtml(val)}</div>`
+      : '';
+    nameBlock = `
+      <div class="card-top card-names-multi">
+        ${promoBadge}
+        <div class="card-name" style="${nameColorStyle}">${escHtml(item.name)}</div>
+        ${subLine(item.nameEn, 'card-name-en')}
+        ${subLine(item.nameZh, 'card-name-zh')}
+        ${subLine(item.nameJa, 'card-name-ja')}
+      </div>`;
+  } else {
+    nameBlock = `
+      <div class="card-top">
+        ${promoBadge}
+        <div class="card-name" style="${nameColorStyle}">${escHtml(item.name)}</div>
+      </div>`;
+  }
+
   return `
     <div class="${cls} theme-${escHtml(theme)}" data-id="${item.id}" ${sizeStyle}>
       ${deleteBtn}
       <div class="card-inner">
         ${brandHtml}
-        <div class="card-top">
-          ${promoBadge}
-          <div class="card-name" style="color:${escHtml(state.nameColor)}">${escHtml(item.name)}</div>
-        </div>
+        ${nameBlock}
         ${priceSection}
       </div>
     </div>
@@ -238,6 +270,7 @@ function updateCardSizeCss() {
   document.documentElement.style.setProperty('--promo-badge-size', state.promoBadgeSize + 'px');
   document.documentElement.style.setProperty('--orig-price-size', state.origPriceSize + 'px');
   document.documentElement.style.setProperty('--sale-price-size', state.salePriceSize + 'px');
+  document.documentElement.style.setProperty('--subname-size', state.subNameSize + 'px');
 }
 
 /* ── 전체 렌더링 ── */
@@ -311,13 +344,13 @@ function doPrint() {
 /* ── 엑셀 템플릿 다운로드 ── */
 function downloadTemplate() {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['상품명', '브랜드명', '가격', '할인문구', '행사가격'],
-    ['반달이 가방걸이', '골든베어상사', '10000', '이번주 특가', ''],
-    ['해태 허니버터칩', '해태제과', '1500', '', '1200'],
-    ['오징어 스낵', '농심', '1000', '2개 1500원', ''],
-    ['초코파이', '오리온', '3500', '행사상품', '2500'],
+    ['상품명(한글)', '브랜드명', '가격', '할인문구', '행사가격', '영문상품명', '중국어상품명', '일본어상품명'],
+    ['반달이 가방걸이', '골든베어상사', '10000', '이번주 특가', '', 'Bandal Bag Hanger', '半月熊包挂钩', 'バンダルバッグハンガー'],
+    ['해태 허니버터칩', '해태제과', '1500', '', '1200', 'Honey Butter Chip', '蜂蜜黄油薯片', 'ハニーバターチップ'],
+    ['오징어 스낵', '농심', '1000', '2개 1500원', '', 'Squid Snack', '鱿鱼零食', 'イカスナック'],
+    ['초코파이', '오리온', '3500', '행사상품', '2500', 'Choco Pie', '巧克力派', 'チョコパイ'],
   ]);
-  ws['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 10 }, { wch: 20 }, { wch: 12 }];
+  ws['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 9 }, { wch: 16 }, { wch: 10 }, { wch: 20 }, { wch: 16 }, { wch: 22 }];
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '가격표 데이터');
@@ -331,6 +364,9 @@ function addSingleItem() {
   const price     = $('singlePrice').value.trim().replace(/[^0-9]/g, '');
   const promo     = $('singlePromo').value.trim();
   const salePrice = $('singleSalePrice').value.trim().replace(/[^0-9]/g, '');
+  const nameEn    = $('singleNameEn').value.trim();
+  const nameZh    = $('singleNameZh').value.trim();
+  const nameJa    = $('singleNameJa').value.trim();
 
   if (!name || !price) {
     if (!name) { const el = $('singleName'); el.style.borderColor = '#ff6b6b'; el.focus(); setTimeout(() => { el.style.borderColor = ''; }, 2000); }
@@ -340,10 +376,11 @@ function addSingleItem() {
 
   state.items.push({
     id: Date.now() + Math.random(),
-    name, brand, price, promo, salePrice,
+    name, brand, price, promo, salePrice, nameEn, nameZh, nameJa,
   });
 
-  ['singleName', 'singleBrand', 'singlePrice', 'singlePromo', 'singleSalePrice']
+  ['singleName', 'singleBrand', 'singlePrice', 'singlePromo', 'singleSalePrice',
+   'singleNameEn', 'singleNameZh', 'singleNameJa']
     .forEach(id => { $(id).value = ''; });
   $('singleName').focus();
 
@@ -401,6 +438,18 @@ clearBgBtn.addEventListener('click', () => {
   bgImageInput.value = '';
   bgCustomThumb.style.backgroundImage = '';
   bgCustomThumb.innerHTML = '<span class="prev-emoji">🖼️</span><span class="theme-label">내 이미지</span>';
+  renderAll();
+});
+
+// 양식(템플릿) 변경 → 다국어 입력칸·번역명 슬라이더 표시 토글
+function applyTemplateUI() {
+  const isMulti = state.template === 'multilang';
+  multilangFields.style.display = isMulti ? 'flex' : 'none';
+  subNameSizeRow.style.display  = isMulti ? 'flex' : 'none';
+}
+templateSelect.addEventListener('change', (e) => {
+  state.template = e.target.value;
+  applyTemplateUI();
   renderAll();
 });
 
@@ -476,13 +525,19 @@ origPriceSizeInput.addEventListener('input', (e) => {
   $('origPriceSizeVal').textContent = state.origPriceSize;
   updateCardSizeCss(); 
 });
-salePriceSizeInput.addEventListener('input', (e) => { 
-  state.salePriceSize = Number(e.target.value); 
+salePriceSizeInput.addEventListener('input', (e) => {
+  state.salePriceSize = Number(e.target.value);
   $('salePriceSizeVal').textContent = state.salePriceSize;
-  updateCardSizeCss(); 
+  updateCardSizeCss();
+});
+subNameSizeInput.addEventListener('input', (e) => {
+  state.subNameSize = Number(e.target.value);
+  $('subNameSizeVal').textContent = state.subNameSize;
+  updateCardSizeCss();
 });
 
 // 초기 렌더링
 nameColorPicker.addEventListener('input', (e) => { state.nameColor = e.target.value; renderAll(); });
 priceColorPicker.addEventListener('input', (e) => { state.priceColor = e.target.value; renderAll(); });
+applyTemplateUI();
 renderAll();

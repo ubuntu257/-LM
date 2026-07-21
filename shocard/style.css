@@ -780,6 +780,34 @@ body {
   -webkit-box-orient: vertical;
 }
 
+/* ── 다국어 양식: 번역 상품명 (영/중/일) ── */
+.card-names-multi .card-name {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.card-name-sub {
+  font-size: var(--subname-size, 11px);
+  font-weight: 500;
+  line-height: 1.2;
+  opacity: .82;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-name-en {
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.card-name-zh {
+  font-family: 'Noto Sans SC', 'Noto Sans KR', sans-serif;
+}
+
+.card-name-ja {
+  font-family: 'Noto Sans JP', 'Noto Sans KR', sans-serif;
+}
+
 /* 중간: 브랜드명 */
 .card-brand {
   font-size: var(--brand-size, 11px);

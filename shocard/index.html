@@ -6,7 +6,8 @@
   <title>🏷️ 쇼카드 가격표 인쇄</title>
   <meta name="description" content="엑셀 업로드로 곤도라 진열장 쇼카드 가격표를 A4 인쇄하는 웹앱" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -50,12 +51,16 @@
       <div class="col-map-info">
         <p class="col-map-title">📋 엑셀 컬럼 순서</p>
         <div class="col-map-grid">
-          <span class="col-badge col-a">A열</span><span class="col-desc">상품명</span>
+          <span class="col-badge col-a">A열</span><span class="col-desc">상품명 (한글)</span>
           <span class="col-badge col-b">B열</span><span class="col-desc">브랜드명</span>
           <span class="col-badge col-c">C열</span><span class="col-desc">가격 (숫자만)</span>
           <span class="col-badge col-d">D열</span><span class="col-desc">할인문구 (선택)</span>
+          <span class="col-badge col-c">E열</span><span class="col-desc">행사가격 (선택)</span>
+          <span class="col-badge col-a">F열</span><span class="col-desc">영문 상품명 (형식2)</span>
+          <span class="col-badge col-a">G열</span><span class="col-desc">중국어 상품명 (형식2)</span>
+          <span class="col-badge col-a">H열</span><span class="col-desc">일본어 상품명 (형식2)</span>
         </div>
-        <p class="col-note">1행 = 1번 카드, 2행 = 2번 카드 순서로 배치</p>
+        <p class="col-note">1행 = 1번 카드, 2행 = 2번 카드 순서로 배치 · F~H열은 「형식2」에서만 사용</p>
       </div>
     </section>
 
@@ -107,6 +112,14 @@
     <!-- STEP 3: 레이아웃 -->
     <section class="panel-section">
       <h2 class="section-title"><span class="step-badge">3</span> 레이아웃 설정</h2>
+      <div class="setting-row">
+        <label class="setting-label">쇼카드 양식</label>
+        <select class="setting-select" id="templateSelect">
+          <option value="basic" selected>형식1 (한글)</option>
+          <option value="multilang">형식2 (한·영·중·일)</option>
+        </select>
+      </div>
+      <div class="setting-divider"></div>
       <div class="setting-row">
         <label class="setting-label">열 수 (A4 기준)</label>
         <select class="setting-select" id="colsSelect">
@@ -170,6 +183,13 @@
           <span class="slider-val" id="nameSizeVal">18</span>
         </div>
       </div>
+      <div class="setting-row" id="subNameSizeRow" style="display:none;">
+        <label class="setting-label">번역명 크기</label>
+        <div class="slider-wrap">
+          <input type="range" id="subNameSizeInput" min="6" max="18" value="11" class="setting-slider" />
+          <span class="slider-val" id="subNameSizeVal">11</span>
+        </div>
+      </div>
       <div class="setting-row">
         <label class="setting-label">브랜드명 크기</label>
         <div class="slider-wrap">
@@ -218,8 +238,22 @@
     <section class="panel-section">
       <h2 class="section-title"><span class="step-badge">4</span> 단일 직접 입력</h2>
       <div class="form-group">
-        <label class="form-label">상품명 *</label>
+        <label class="form-label">상품명 (한글) *</label>
         <input type="text" class="form-input" id="singleName" placeholder="예: 반달이 가방걸이" />
+      </div>
+      <div id="multilangFields" style="display:none; flex-direction:column; gap:12px;">
+        <div class="form-group">
+          <label class="form-label">영문 상품명 🇺🇸</label>
+          <input type="text" class="form-input" id="singleNameEn" placeholder="예: Bandal Bag Hanger" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">중국어 상품명 🇨🇳</label>
+          <input type="text" class="form-input" id="singleNameZh" placeholder="예: 半月熊包挂钩" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">일본어 상품명 🇯🇵</label>
+          <input type="text" class="form-input" id="singleNameJa" placeholder="예: バンダルバッグハンガー" />
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">브랜드명</label>
