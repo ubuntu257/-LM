@@ -57,6 +57,8 @@ window.BARCODE_DATA = {
 
 ## 참고
 
+- `index.html`의 `style.css?v=2` / `app.js?v=2` / `data.js?v=2` 뒤 숫자는 **캐시 무효화용**입니다. GitHub Pages가 파일을 10분간 캐시하므로, 이 파일들을 고친 뒤에는 숫자를 하나 올려야 직원 브라우저에 바로 반영됩니다.
+
 - 바코드는 [JsBarcode](https://github.com/lindell/JsBarcode), 엑셀 파싱은 [SheetJS](https://sheetjs.com)를 CDN으로 씁니다. 사내망에서 이 두 CDN이 막히면 바코드가 그려지지 않습니다.
 - 13자리 숫자 중 EAN-13 체크디지트가 맞는 것만 `EAN13`으로, 나머지(의류 SKU 등)는 `CODE128`로 그립니다.
 - 로컬 확인: `npx serve -l 3458 barcode` 후 http://localhost:3458
