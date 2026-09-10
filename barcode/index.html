@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>📦 국립공원 굿즈 바코드북</title>
+<meta name="description" content="국립공원 굿즈 상품의 바코드·상품코드·판매가를 검색하는 사내 조회 웹" />
+<meta name="theme-color" content="#0f1117" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===== 헤더 ===== -->
+<header class="app-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <span class="logo-icon">📦</span>
+      <div class="logo-text">
+        <h1 class="logo-title">국립공원 굿즈 바코드북</h1>
+        <p class="logo-sub" id="dataInfo">불러오는 중…</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" id="printBtn" title="현재 검색 결과를 A4로 인쇄">🖨️ 인쇄</button>
+    </div>
+  </div>
+
+  <!-- 검색 -->
+  <div class="search-bar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="q" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="상품명 · 바코드 · 상품코드 검색  (초성 검색 가능: ㅂㄷㅇ)" />
+      <button class="search-clear" id="clearBtn" hidden aria-label="검색어 지우기">✕</button>
+    </div>
+  </div>
+
+  <!-- 필터 -->
+  <div class="filter-bar">
+    <div class="chips" id="groupChips"></div>
+    <div class="filter-right">
+      <label class="toggle">
+        <input type="checkbox" id="showDiscontinued" />
+        <span>단종 포함</span>
+      </label>
+      <select id="sort" class="select" aria-label="정렬">
+        <option value="name">이름순</option>
+        <option value="no">등록순</option>
+        <option value="priceAsc">가격 낮은순</option>
+        <option value="priceDesc">가격 높은순</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 본문 ===== -->
+<main class="app-main">
+  <p class="result-count" id="count"></p>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>
+    <p class="empty-icon">🔎</p>
+    <p class="empty-title">검색 결과가 없습니다</p>
+    <p class="empty-sub">상품명 일부나 바코드 뒷자리로 다시 검색해 보세요.</p>
+  </div>
+</main>
+
+<footer class="app-footer">
+  <span id="footerInfo"></span>
+  <a href="update.html" class="footer-link">데이터 갱신(관리자)</a>
+</footer>
+
+<!-- ===== 상세 ===== -->
+<div class="sheet-backdrop" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dName">
+    <button class="sheet-close" id="sheetClose" aria-label="닫기">✕</button>
+    <p class="d-group" id="dGroup"></p>
+    <h2 class="d-name" id="dName"></h2>
+    <p class="d-price" id="dPrice"></p>
+    <div class="d-barcode" id="dBarcode"></div>
+    <div class="d-rows">
+      <div class="d-row">
+        <span class="d-label">바코드</span>
+        <span class="d-value" id="dBc"></span>
+        <button class="copy-btn" data-copy="bc">복사</button>
+      </div>
+      <div class="d-row">
+        <span class="d-label">상품코드</span>
+        <span class="d-value" id="dCode"></span>
+        <button class="copy-btn" data-copy="code">복사</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

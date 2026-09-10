@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🔄 바코드북 데이터 갱신</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
+  .wrap h1 { font-size: 22px; margin-bottom: 8px; }
+  .wrap .lead { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 24px; }
+  .steps { counter-reset: s; display: flex; flex-direction: column; gap: 14px; }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .step h2 { font-size: 15px; margin-bottom: 10px; }
+  .step p { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+  .step code { background: var(--surface2); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
+  .drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px; text-align: center;
+          cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: rgba(79,125,255,.06); }
+  .drop-icon { font-size: 34px; margin-bottom: 8px; }
+  .drop-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .report { font-size: 13px; line-height: 1.9; margin-top: 12px; }
+  .report .ok { color: #6bd08a; }
+  .report .warn { color: var(--warn); }
+  .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .back { display: inline-block; margin-bottom: 18px; color: var(--text-muted); font-size: 13px; text-decoration: none; }
+  .back:hover { color: var(--accent-hover); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" class="back">← 바코드북으로 돌아가기</a>
+  <h1>🔄 데이터 갱신 (관리자용)</h1>
+  <p class="lead">
+    포스에서 받은 <b>바코드북 엑셀</b>(상품조회 내역)을 올리면 <code>data.js</code> 파일을 새로 만들어 줍니다.
+    받은 파일을 <code>barcode/data.js</code> 에 덮어쓰고 커밋하면 전 직원 화면에 반영됩니다.
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <h2>1. 엑셀 올리기</h2>
+      <div class="drop" id="drop">
+        <div class="drop-icon">📂</div>
+        <div>엑셀 파일을 끌어다 놓거나 클릭해서 선택</div>
+        <div class="drop-sub">.xls / .xlsx — <code>No. / 상품코드 / 상품명 / 대분류 / 바코드 / … / 판매단가</code> 머리글이 있는 시트</div>
+        <input type="file" id="file" accept=".xls,.xlsx" hidden />
+      </div>
+      <div class="report" id="report"></div>
+    </div>
+
+    <div class="step">
+      <h2>2. data.js 내려받기</h2>
+      <p>아래 버튼으로 파일을 받은 뒤 <code>barcode/data.js</code> 를 교체하세요.</p>
+      <div class="actions">
+        <button class="btn btn-primary" id="dl" disabled>⬇️ data.js 내려받기</button>
+        <button class="btn btn-outline" id="cp" disabled>📋 내용 복사</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const drop = $('drop'), file = $('file'), report = $('report'), dl = $('dl'), cp = $('cp'), toast = $('toast');
+  let out = '';
+
+  function say(msg) {
+    toast.textContent = msg;
+    toast.hidden = false;
+    setTimeout(() => { toast.hidden = true; }, 1800);
+  }
+
+  function ean13ok(s) {
+    if (!/^\d{13}$/.test(s)) return false;
+    let sum = 0;
+    for (let i = 0; i < 12; i++) sum += (+s[i]) * (i % 2 ? 3 : 1);
+    return (10 - sum % 10) % 10 === +s[12];
+  }
+
+  function build(rows, fileName) {
+    const hi = rows.findIndex((r) => String(r[0]).trim() === 'No.');
+    if (hi < 0) throw new Error('"No." 머리글 행을 찾지 못했습니다. 포스에서 받은 원본 엑셀인지 확인하세요.');
+    const head = rows[hi].map((h) => String(h || '').trim());
+    const col = (name) => head.indexOf(name);
+    const cCode = col('상품코드'), cName = col('상품명'), cBc = col('바코드'), cPrice = col('판매단가');
+    if (cCode < 0 || cName < 0 || cBc < 0 || cPrice < 0) {
+      throw new Error('필요한 열(상품코드/상품명/바코드/판매단가)이 없습니다.');
+    }
+
+    const items = rows.slice(hi + 1).filter((r) => r[cCode]).map((r, i) => {
+      const name = String(r[cName] || '').trim();
+      const bc = String(r[cBc] == null ? '' : r[cBc]).trim();
+      const g = name.match(/\((.)\)/);
+      const it = {
+        n: Number(r[0]) || i + 1,
+        code: String(r[cCode]).trim(),
+        name,
+        grp: g ? g[1] : '',
+        bc,
+        fmt: bc ? (ean13ok(bc) ? 'EAN13' : 'CODE128') : '',
+        price: Number(r[cPrice]) || 0,
+      };
+      if (/^사용(불가|중지)/.test(name)) it.dis = true;
+      return it;
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const js = '/* 자동 생성 파일 — barcode/update.html 로 갱신하세요. 직접 수정 금지 */\n' +
+      'window.BARCODE_DATA = {\n  updated: ' + JSON.stringify(today) +
+      ',\n  source: ' + JSON.stringify(fileName) + ',\n  items: [\n' +
+      items.map((i) => '    ' + JSON.stringify(i)).join(',\n') + '\n  ]\n};\n';
+    return { js, items };
+  }
+
+  function handle(f) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true });
+        const res = build(rows, f.name);
+        out = res.js;
+        const items = res.items;
+        const noBc = items.filter((i) => !i.bc).length;
+        const ean = items.filter((i) => i.fmt === 'EAN13').length;
+        const c128 = items.filter((i) => i.fmt === 'CODE128').length;
+        const dis = items.filter((i) => i.dis).length;
+        report.innerHTML =
+          '<div class="ok">✅ ' + f.name + ' — 상품 ' + items.length + '개를 읽었습니다.</div>' +
+          '<div>· EAN-13 ' + ean + '개 · CODE128 ' + c128 + '개' +
+          (noBc ? ' · <span class="warn">바코드 없음 ' + noBc + '개</span>' : '') +
+          (dis ? ' · 단종 ' + dis + '개' : '') + '</div>';
+        dl.disabled = false;
+        cp.disabled = false;
+      } catch (err) {
+        report.innerHTML = '<div class="warn">⚠️ ' + err.message + '</div>';
+        dl.disabled = true;
+        cp.disabled = true;
+      }
+    };
+    reader.readAsArrayBuffer(f);
+  }
+
+  drop.addEventListener('click', () => file.click());
+  file.addEventListener('change', () => { if (file.files[0]) handle(file.files[0]); });
+  ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => {
+    e.preventDefault(); drop.classList.add('over');
+  }));
+  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => {
+    e.preventDefault(); drop.classList.remove('over');
+  }));
+  drop.addEventListener('drop', (e) => {
+    const f = e.dataTransfer.files[0];
+    if (f) handle(f);
+  });
+
+  dl.addEventListener('click', () => {
+    const blob = new Blob([out], { type: 'application/javascript;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'data.js';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  cp.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(out);
+      say('data.js 내용을 복사했습니다');
+    } catch (e) {
+      say('복사에 실패했습니다. 내려받기를 이용하세요');
+    }
+  });
+})();
+</script>
+</body>
+</html>
