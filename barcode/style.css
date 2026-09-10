@@ -10,6 +10,12 @@
   padding: 0;
 }
 
+/* hidden 속성은 어떤 display 규칙보다 우선한다.
+   (.sheet-backdrop 처럼 display 를 지정한 요소는 이 규칙이 없으면 hidden 이 무시된다) */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --bg: #0f1117;
   --surface: #1a1d27;
