@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-<link rel="stylesheet" href="style.css?v=2" />
+<link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
 
@@ -48,7 +48,7 @@
         <span>단종 포함</span>
       </label>
       <select id="sort" class="select" aria-label="정렬">
-        <option value="name">이름순</option>
+        <option value="name">가나다순</option>
         <option value="no">등록순</option>
         <option value="priceAsc">가격 낮은순</option>
         <option value="priceDesc">가격 높은순</option>
@@ -81,6 +81,8 @@
     <h2 class="d-name" id="dName"></h2>
     <p class="d-price" id="dPrice"></p>
     <div class="d-barcode" id="dBarcode"></div>
+    <p class="scan-hint" id="scanHint">화면 밝기를 최대로 올리면 잘 찍힙니다</p>
+    <button class="btn btn-scan" id="scanBtn">🔍 크게 보기 (계산대 스캔용)</button>
     <div class="d-rows">
       <div class="d-row">
         <span class="d-label">바코드</span>
@@ -98,7 +100,7 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="data.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="data.js?v=3"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

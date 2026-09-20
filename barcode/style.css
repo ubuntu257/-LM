@@ -573,6 +573,92 @@ mark {
   border-color: var(--accent);
 }
 
+.scan-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+
+.btn-scan {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px 16px;
+}
+
+.btn-scan:hover {
+  background: var(--accent-hover);
+}
+
+/* 스캔 모드 — 무인샵 계산대에서 폰 화면을 스캐너로 직접 찍는 전체화면 */
+.sheet-backdrop.scan {
+  background: #fff;
+  padding: 0;
+  backdrop-filter: none;
+}
+
+.sheet-backdrop.scan .sheet {
+  background: #fff;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  overflow: hidden;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-backdrop.scan .d-group,
+.sheet-backdrop.scan .d-price,
+.sheet-backdrop.scan .d-rows,
+.sheet-backdrop.scan .btn-scan {
+  display: none;
+}
+
+.sheet-backdrop.scan .d-name {
+  color: #111;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 2px 46px 0 8px;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.sheet-backdrop.scan .scan-hint {
+  color: #8a8a8a;
+  margin: 0 0 2px;
+  flex-shrink: 0;
+  order: 3;
+}
+
+.sheet-backdrop.scan .sheet-close {
+  background: #e6e8ef;
+  color: #333;
+}
+
+.sheet-backdrop.scan .d-barcode {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+/* 세로 화면을 길이 방향으로 쓰려고 90도 돌린다.
+   크기와 rotate 는 JS 가 화면에 맞춰 인라인으로 넣는다 (JsBarcode 가 svg 에
+   transform 을 인라인으로 박아두기 때문에 여기서는 못 이긴다). */
+.sheet-backdrop.scan .d-barcode svg {
+  max-width: none;
+  flex-shrink: 0;
+}
+
 /* 토스트 */
 .toast {
   position: fixed;

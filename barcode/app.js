@@ -16,6 +16,7 @@
     sheet: $('sheet'), sheetClose: $('sheetClose'), toast: $('toast'),
     dGroup: $('dGroup'), dName: $('dName'), dPrice: $('dPrice'),
     dBarcode: $('dBarcode'), dBc: $('dBc'), dCode: $('dCode'),
+    scanBtn: $('scanBtn'),
   };
 
   /* ── 검색 인덱스 ── */
@@ -35,12 +36,10 @@
   const squash = (s) => s.toLowerCase().replace(/\s+/g, '');
 
   const items = DATA.items.map((it, idx) => {
-    // 표시용 이름: "(골)", "사용불가-" 같은 접두어를 뗀 실제 상품명
-    const clean = it.name.replace(/^사용(불가|중지)\s*-\s*/, '').replace(/^\(.\)\s*/, '');
+    // 상품명은 포스 원본 그대로 쓴다. 앞의 "(골)" 같은 구분자까지 포함해 가나다순으로 정렬된다.
     return {
       ...it,
       _i: idx,
-      clean,
       _name: squash(it.name),
       _cho: squash(toCho(it.name)),
       _bc: (it.bc || '').toLowerCase(),
@@ -70,7 +69,7 @@
     });
 
     const by = {
-      name: (a, b) => a.clean.localeCompare(b.clean, 'ko'),
+      name: (a, b) => a.name.localeCompare(b.name, 'ko'),
       no: (a, b) => a.n - b.n,
       priceAsc: (a, b) => a.price - b.price,
       priceDesc: (a, b) => b.price - a.price,
@@ -90,9 +89,9 @@
     try {
       JsBarcode(svg, it.bc, {
         format: it.fmt,
-        width: big ? 2.4 : 1.6,
-        height: big ? 80 : 42,
-        fontSize: big ? 18 : 13,
+        width: big ? 3 : 1.6,
+        height: big ? 100 : 42,
+        fontSize: big ? 20 : 13,
         margin: 4,
         displayValue: true,
       });
@@ -132,7 +131,7 @@
       card.dataset.code = it.code;
       card.innerHTML =
         '<div class="card-top">' +
-          '<span class="card-name">' + highlight(it.clean, state.q) + '</span>' +
+          '<span class="card-name">' + highlight(it.name, state.q) + '</span>' +
           '<span class="card-price">' + won(it.price) + '</span>' +
         '</div>' +
         '<div class="card-barcode" data-idx="' + it._i + '"></div>' +
@@ -155,20 +154,66 @@
   function openSheet(it) {
     current = it;
     el.dGroup.textContent = (it.grp ? '(' + it.grp + ') ' : '') + (it.dis ? '· 단종 상품' : '');
-    el.dName.textContent = it.clean;
+    el.dName.textContent = it.name;
     el.dPrice.textContent = won(it.price);
     el.dBc.textContent = it.bc || '없음';
     el.dCode.textContent = it.code;
     drawBarcode(el.dBarcode, it, true);
+    // 바코드가 없는 상품은 크게 볼 것도 없다.
+    el.scanBtn.hidden = !it.fmt;
+    $('scanHint').hidden = !it.fmt;
     el.sheet.hidden = false;
     document.body.style.overflow = 'hidden';
   }
 
   function closeSheet() {
+    exitScan();
     el.sheet.hidden = true;
     current = null;
     document.body.style.overflow = '';
   }
+
+  /* ── 스캔 모드 ──
+     무인샵 계산대에서 폰 화면을 스캐너로 직접 찍는 용도.
+     흰 배경 전체화면 + 바코드를 90도 돌려 화면 세로 길이만큼 길게 키운다. */
+
+  const inScan = () => el.sheet.classList.contains('scan');
+
+  function fitScanBarcode() {
+    const svg = el.dBarcode.querySelector('svg');
+    if (!svg) return;
+    if (!inScan()) {
+      svg.style.width = '';
+      svg.style.height = '';
+      svg.style.transform = 'translate(0,0)'; // JsBarcode 가 넣어둔 기본값
+      return;
+    }
+    const vb = (svg.getAttribute('viewBox') || '0 0 100 40').split(/\s+/).map(Number);
+    const ratio = vb[2] / vb[3];
+    const box = el.dBarcode.getBoundingClientRect();
+    // 회전하면 svg 의 가로가 화면 세로 방향이 된다. 세로 길이를 꽉 채우되
+    // 돌아간 뒤의 두께(= svg 세로)가 화면 가로를 넘지 않도록 줄인다.
+    let w = box.height - 8;
+    if (w / ratio > box.width - 8) w = (box.width - 8) * ratio;
+    svg.style.width = w + 'px';
+    svg.style.height = (w / ratio) + 'px';
+    // JsBarcode 가 svg 에 transform 을 인라인으로 넣어두기 때문에 여기서 직접 덮어쓴다.
+    svg.style.transform = 'rotate(90deg)';
+  }
+
+  function enterScan() {
+    if (!current || !current.fmt) return;
+    el.sheet.classList.add('scan');
+    fitScanBarcode();
+  }
+
+  function exitScan() {
+    if (!inScan()) return;
+    el.sheet.classList.remove('scan');
+    fitScanBarcode();
+  }
+
+  window.addEventListener('resize', fitScanBarcode);
 
   let toastTimer;
   function toast(msg) {
@@ -220,11 +265,16 @@
 
   el.dis.addEventListener('change', () => { state.dis = el.dis.checked; render(); });
   el.sort.addEventListener('change', () => { state.sort = el.sort.value; render(); });
-  el.sheetClose.addEventListener('click', closeSheet);
+  // 스캔 모드에서는 닫기(✕)·ESC 가 먼저 스캔 모드만 빠져나온다.
+  el.sheetClose.addEventListener('click', () => (inScan() ? exitScan() : closeSheet()));
   el.sheet.addEventListener('click', (e) => { if (e.target === el.sheet) closeSheet(); });
+  el.scanBtn.addEventListener('click', enterScan);
+  el.dBarcode.addEventListener('click', () => { if (inScan()) exitScan(); });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !el.sheet.hidden) closeSheet();
+    if (e.key !== 'Escape' || el.sheet.hidden) return;
+    if (inScan()) exitScan();
+    else closeSheet();
   });
 
   el.sheet.querySelectorAll('.copy-btn').forEach((b) => {
