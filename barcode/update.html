@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>🔄 바코드북 데이터 갱신</title>
+<title>🔄 바코드북 상품 관리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -12,16 +12,16 @@
 <style>
   .wrap { max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; }
   .wrap h1 { font-size: 22px; margin-bottom: 8px; }
-  .wrap .lead { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 24px; }
-  .steps { counter-reset: s; display: flex; flex-direction: column; gap: 14px; }
+  .wrap .lead { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
+  .steps { display: flex; flex-direction: column; gap: 14px; }
   .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
   .step h2 { font-size: 15px; margin-bottom: 10px; }
   .step p { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
   .step code { background: var(--surface2); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
-  .drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px; text-align: center;
+  .drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center;
           cursor: pointer; transition: border-color .15s, background .15s; }
   .drop:hover, .drop.over { border-color: var(--accent); background: rgba(79,125,255,.06); }
-  .drop-icon { font-size: 30px; margin-bottom: 8px; }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; }
   .drop-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-hover); }
@@ -29,11 +29,19 @@
   .report { font-size: 13px; line-height: 1.9; margin-top: 12px; }
   .report .ok { color: #6bd08a; }
   .report .warn { color: var(--warn); }
-  .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
   .back { display: inline-block; margin-bottom: 18px; color: var(--text-muted); font-size: 13px; text-decoration: none; }
   .back:hover { color: var(--accent-hover); }
 
-  /* 상품 직접 추가 폼 */
+  /* 관리자 비밀번호 바 */
+  .pass-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+              background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+              padding: 12px 14px; margin-bottom: 14px; }
+  .pass-bar .lbl { font-size: 13px; color: var(--text-muted); }
+  .pass-bar .state { font-size: 13px; font-weight: 700; margin-left: auto; }
+  .pass-bar .state.on { color: #6bd08a; }
+  .pass-bar .state.off { color: var(--warn); }
+
+  /* 폼 */
   .f-row { display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: center; margin-bottom: 10px; }
   .f-row label { font-size: 13px; color: var(--text-muted); }
   .f-row label .req { color: #ff7875; }
@@ -42,7 +50,7 @@
   .f-input:focus { outline: none; border-color: var(--accent); }
   .f-hint { font-size: 11px; color: var(--text-muted); margin: -4px 0 10px 104px; }
 
-  /* 현재 데이터 작업 목록 */
+  /* 목록 */
   .wset { margin-top: 16px; }
   .wset-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
   .wset-title { font-size: 13px; font-weight: 700; }
@@ -50,7 +58,7 @@
   .wset-search { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
                  color: var(--text); font-size: 13px; padding: 8px 11px; font-family: inherit; margin-bottom: 8px; }
   .wset-search:focus { outline: none; border-color: var(--accent); }
-  .wset-list { max-height: 300px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .wset-list { max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
   .wset-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
   .wset-row:last-child { border-bottom: none; }
   .wset-row.added { background: rgba(79,125,255,.08); }
@@ -66,19 +74,27 @@
 <body>
 <div class="wrap">
   <a href="index.html" class="back">← 바코드북으로 돌아가기</a>
-  <h1>🔄 데이터 갱신 (관리자용)</h1>
+  <h1>🔄 상품 관리 (관리자용)</h1>
   <p class="lead">
-    상품을 <b>직접 추가</b>하거나, 포스 <b>바코드북 엑셀</b>(상품조회 내역)을 통째로 올려 데이터를 만듭니다.
-    완성되면 <code>data.js</code> 를 내려받아 <code>barcode/data.js</code> 에 덮어쓰고 커밋하면 전 직원 화면에 반영됩니다.
-    <br /><b id="baseInfo" class="muted">현재 데이터 불러오는 중…</b>
+    상품을 <b>직접 추가·수정·삭제</b>하면 <b>바로 반영</b>됩니다. (내려받기·커밋 필요 없음)
+    <br /><span id="baseInfo" class="muted">불러오는 중…</span>
   </p>
+
+  <!-- 관리자 비밀번호 -->
+  <div class="pass-bar">
+    <span class="lbl">🔒 관리자 비밀번호</span>
+    <input class="f-input" id="passInput" type="password" placeholder="추가/수정 시 필요" style="max-width:220px;" />
+    <button class="btn btn-primary" id="passSave">저장</button>
+    <button class="btn btn-outline" id="passClear">지우기</button>
+    <span class="state" id="passState"></span>
+  </div>
 
   <div class="steps">
 
     <!-- 상품 직접 추가 -->
     <div class="step">
-      <h2>➕ 상품 직접 추가</h2>
-      <p style="margin-bottom:14px;">현재 데이터에 상품을 하나씩 더합니다. 같은 <b>상품코드</b>면 기존 상품을 갱신합니다.</p>
+      <h2>➕ 상품 직접 추가 / 수정</h2>
+      <p style="margin-bottom:14px;">같은 <b>상품코드</b>면 기존 상품을 수정합니다. 추가하면 전 직원 화면에 바로 반영됩니다.</p>
       <div class="f-row">
         <label>상품명 <span class="req">*</span></label>
         <input class="f-input" id="iName" placeholder="예: (골)반달이 가방걸이" />
@@ -97,14 +113,13 @@
         <label>상품코드</label>
         <input class="f-input" id="iCode" placeholder="비우면 자동 발번 (예: 000261)" />
       </div>
-      <div class="actions">
-        <button class="btn btn-primary" id="addBtn">➕ 목록에 추가</button>
+      <div class="actions" style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn btn-primary" id="addBtn">➕ 저장 (바로 반영)</button>
       </div>
 
-      <!-- 현재 작업 목록 -->
       <div class="wset">
         <div class="wset-head">
-          <span class="wset-title">📋 현재 목록</span>
+          <span class="wset-title">📋 현재 등록된 상품</span>
           <span class="wset-count" id="wCount">0개</span>
         </div>
         <input class="wset-search" id="wSearch" placeholder="상품명 · 상품코드 · 바코드로 찾기" />
@@ -112,10 +127,10 @@
       </div>
     </div>
 
-    <!-- 엑셀로 전체 교체 -->
+    <!-- 엑셀 일괄 -->
     <div class="step">
-      <h2>📂 엑셀로 전체 교체 (선택)</h2>
-      <p style="margin-bottom:10px;">포스 엑셀을 올리면 위 목록이 <b>엑셀 내용으로 전부 교체</b>됩니다. (개별 추가만 할 땐 안 써도 됩니다.)</p>
+      <h2>📂 엑셀로 일괄 등록 (선택)</h2>
+      <p style="margin-bottom:10px;">포스 엑셀을 올리면 상품을 <b>한꺼번에 등록/갱신</b>합니다(상품코드 기준). 개별 추가만 할 땐 안 써도 됩니다.</p>
       <div class="drop" id="drop">
         <div class="drop-icon">📂</div>
         <div>엑셀 파일을 끌어다 놓거나 클릭해서 선택</div>
@@ -124,245 +139,208 @@
       </div>
       <div class="report" id="report"></div>
     </div>
-
-    <!-- 내려받기 -->
-    <div class="step">
-      <h2>⬇️ data.js 내려받기</h2>
-      <p>아래 버튼으로 파일을 받은 뒤 <code>barcode/data.js</code> 를 교체하고 커밋하세요.</p>
-      <div class="actions">
-        <button class="btn btn-primary" id="dl" disabled>⬇️ data.js 내려받기</button>
-        <button class="btn btn-outline" id="cp" disabled>📋 내용 복사</button>
-      </div>
-    </div>
   </div>
 </div>
 
 <div class="toast" id="toast" hidden></div>
 
+<script src="config.js?v=4"></script>
 <script>
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const drop = $('drop'), file = $('file'), report = $('report'), dl = $('dl'), cp = $('cp'), toast = $('toast');
+  const toast = $('toast'), report = $('report'), drop = $('drop'), file = $('file');
   const iName = $('iName'), iPrice = $('iPrice'), iBc = $('iBc'), iCode = $('iCode'), addBtn = $('addBtn');
   const wList = $('wList'), wCount = $('wCount'), wSearch = $('wSearch'), baseInfo = $('baseInfo');
+  const passInput = $('passInput'), passSave = $('passSave'), passClear = $('passClear'), passState = $('passState');
 
-  let items = [];           // 작업 중인 상품 목록
-  let source = '바코드북.xls';
-  let out = '';
-  const addedCodes = new Set();   // 이번 세션에 추가/수정한 코드 (하이라이트용)
+  let items = [];
+  const addedCodes = new Set();
 
-  function say(msg) {
-    toast.textContent = msg;
-    toast.hidden = false;
-    setTimeout(() => { toast.hidden = true; }, 1800);
-  }
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
+  function say(msg) { toast.textContent = msg; toast.hidden = false; setTimeout(() => { toast.hidden = true; }, 1800); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function ean13ok(s) {
     if (!/^\d{13}$/.test(s)) return false;
-    let sum = 0;
-    for (let i = 0; i < 12; i++) sum += (+s[i]) * (i % 2 ? 3 : 1);
-    return (10 - sum % 10) % 10 === +s[12];
+    let sum = 0; for (let i=0;i<12;i++) sum += (+s[i])*(i%2?3:1);
+    return (10 - sum%10)%10 === +s[12];
   }
 
-  // 상품명/바코드/가격으로 표준 item 객체 생성 (키 순서 = data.js 포맷과 동일)
+  /* ── 비밀번호 ── */
+  function getPass() { return localStorage.getItem('barcode_pass') || ''; }
+  function refreshPassState() {
+    const has = !!getPass();
+    passState.textContent = has ? '설정됨 ✓' : '미설정';
+    passState.className = 'state ' + (has ? 'on' : 'off');
+    passInput.value = '';
+    passInput.placeholder = has ? '변경하려면 입력' : '추가/수정 시 필요';
+  }
+  passSave.addEventListener('click', () => {
+    const v = passInput.value.trim();
+    if (!v) { passInput.focus(); return; }
+    localStorage.setItem('barcode_pass', v);
+    refreshPassState(); say('비밀번호 저장됨');
+  });
+  passClear.addEventListener('click', () => { localStorage.removeItem('barcode_pass'); refreshPassState(); say('비밀번호 지움'); });
+  function ensurePass() {
+    let p = getPass();
+    if (!p) { p = (prompt('관리자 비밀번호를 입력하세요') || '').trim(); if (p) { localStorage.setItem('barcode_pass', p); refreshPassState(); } }
+    return p;
+  }
+
+  /* ── Supabase ── */
+  const H = () => ({ apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' });
+  async function loadItems() {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/products?select=n,code,name,grp,bc,fmt,price,dis&order=n.asc', { headers: H() });
+    if (!r.ok) throw new Error('목록을 불러오지 못했습니다 (' + r.status + ')');
+    items = await r.json();
+  }
+  async function rpc(fn, body) {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: H(), body: JSON.stringify(body) });
+    const t = await r.text();
+    if (!r.ok) { let m = t; try { m = JSON.parse(t).message; } catch (e) {} const err = new Error(m); err.status = r.status; throw err; }
+    return t ? JSON.parse(t) : null;
+  }
+  function authFail(e) {
+    if (e && e.message && String(e.message).includes('인증')) {
+      localStorage.removeItem('barcode_pass'); refreshPassState();
+      alert('관리자 비밀번호가 틀립니다. 다시 입력해 주세요.');
+      return true;
+    }
+    return false;
+  }
+
+  /* ── 아이템 생성 ── */
   function makeItem(name, code, bc, price, n) {
-    name = String(name).trim();
-    bc = String(bc || '').trim();
+    name = String(name).trim(); bc = String(bc || '').trim();
     const g = name.match(/\((.)\)/);
     const it = {
-      n: n,
-      code: String(code || '').trim(),
-      name: name,
-      grp: g ? g[1] : '',
-      bc: bc,
+      n: n, code: String(code || '').trim(), name: name,
+      grp: g ? g[1] : '', bc: bc,
       fmt: bc ? (ean13ok(bc) ? 'EAN13' : 'CODE128') : '',
       price: Number(String(price).replace(/[^0-9.]/g, '')) || 0,
     };
-    if (/^사용(불가|중지)/.test(name)) it.dis = true;
+    if (/^사용(불가|중지)/.test(name)) it.dis = true; else it.dis = false;
     return it;
   }
+  function nextN() { let m = 0; items.forEach(i => { if (Number(i.n) > m) m = Number(i.n); }); return m + 1; }
+  function nextCode() { let m = 0; items.forEach(i => { if (/^\d+$/.test(i.code) && +i.code > m) m = +i.code; }); return String(m + 1).padStart(6, '0'); }
 
-  function nextN() {
-    let max = 0;
-    items.forEach((i) => { if (Number(i.n) > max) max = Number(i.n); });
-    return max + 1;
-  }
-  function nextCode() {
-    let max = 0;
-    items.forEach((i) => { if (/^\d+$/.test(i.code) && +i.code > max) max = +i.code; });
-    return String(max + 1).padStart(6, '0');
-  }
-
-  function serialize() {
-    const today = new Date().toISOString().slice(0, 10);
-    return '/* 자동 생성 파일 — barcode/update.html 로 갱신하세요. 직접 수정 금지 */\n' +
-      'window.BARCODE_DATA = {\n  updated: ' + JSON.stringify(today) +
-      ',\n  source: ' + JSON.stringify(source) + ',\n  items: [\n' +
-      items.map((i) => '    ' + JSON.stringify(i)).join(',\n') + '\n  ]\n};\n';
-  }
-
+  /* ── 목록 렌더 ── */
   function renderList() {
     wCount.textContent = items.length + '개';
     const q = wSearch.value.trim().toLowerCase();
-    const rows = items
-      .map((it, idx) => ({ it, idx }))
-      .filter(({ it }) => !q
-        || it.name.toLowerCase().includes(q)
-        || String(it.code).toLowerCase().includes(q)
-        || String(it.bc).includes(q));
-    if (!rows.length) {
-      wList.innerHTML = '<div class="wset-row"><span class="muted">표시할 상품이 없습니다</span></div>';
-      return;
-    }
-    wList.innerHTML = rows.map(({ it, idx }) =>
+    const rows = items.filter(it => !q
+      || it.name.toLowerCase().includes(q)
+      || String(it.code).toLowerCase().includes(q)
+      || String(it.bc).includes(q));
+    if (!rows.length) { wList.innerHTML = '<div class="wset-row"><span class="muted">표시할 상품이 없습니다</span></div>'; return; }
+    wList.innerHTML = rows.map(it =>
       '<div class="wset-row' + (addedCodes.has(it.code) ? ' added' : '') + '">' +
         '<div class="wset-main">' +
           '<div class="wset-name">' + esc(it.name) + (it.dis ? ' <span class="muted">(단종)</span>' : '') + '</div>' +
           '<div class="wset-meta">' + (it.price || 0).toLocaleString() + '원 · ' + esc(it.code) +
             (it.bc ? ' · ' + esc(it.bc) : ' · <span class="muted">바코드 없음</span>') + '</div>' +
         '</div>' +
-        '<button class="wset-del" data-idx="' + idx + '" title="삭제">✕</button>' +
+        '<button class="wset-del" data-code="' + esc(it.code) + '" title="삭제">✕</button>' +
       '</div>'
     ).join('');
   }
 
-  function regen() {
-    out = serialize();
-    const has = items.length > 0;
-    dl.disabled = !has;
-    cp.disabled = !has;
-    renderList();
-  }
+  async function reload() { await loadItems(); renderList(); }
 
-  // ── 상품 직접 추가 ──
-  function addItem() {
+  /* ── 추가/수정 ── */
+  addBtn.addEventListener('click', addItem);
+  [iName, iPrice, iBc, iCode].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); }));
+  wSearch.addEventListener('input', renderList);
+
+  async function addItem() {
     const name = iName.value.trim();
     const priceRaw = iPrice.value.trim();
     if (!name) { iName.focus(); iName.style.borderColor = '#ff7875'; setTimeout(() => iName.style.borderColor = '', 1500); return; }
     if (!priceRaw) { iPrice.focus(); iPrice.style.borderColor = '#ff7875'; setTimeout(() => iPrice.style.borderColor = '', 1500); return; }
+    const pass = ensurePass(); if (!pass) return;
 
     let code = iCode.value.trim();
-    const existingIdx = code ? items.findIndex((x) => String(x.code) === code) : -1;
+    const existing = code ? items.find(x => String(x.code) === code) : null;
     if (!code) code = nextCode();
+    const n = existing ? existing.n : nextN();
+    const item = makeItem(name, code, iBc.value, priceRaw, n);
 
-    if (existingIdx >= 0) {
-      const keepN = items[existingIdx].n;
-      items[existingIdx] = makeItem(name, code, iBc.value, priceRaw, keepN);
-      addedCodes.add(code);
-      say('기존 상품(코드 ' + code + ')을 갱신했습니다');
-    } else {
-      items.push(makeItem(name, code, iBc.value, priceRaw, nextN()));
-      addedCodes.add(code);
-      say('추가되었습니다 (총 ' + items.length + '개)');
-    }
-
-    iName.value = ''; iPrice.value = ''; iBc.value = ''; iCode.value = '';
-    iName.focus();
-    wSearch.value = '';
-    regen();
+    addBtn.disabled = true;
+    try {
+      await rpc('barcode_upsert', { pass, p: item });
+      addedCodes.add(item.code);
+      iName.value = ''; iPrice.value = ''; iBc.value = ''; iCode.value = '';
+      iName.focus(); wSearch.value = '';
+      await reload();
+      say(existing ? '수정됨 (바로 반영)' : '추가됨 (바로 반영)');
+    } catch (e) {
+      if (!authFail(e)) alert('저장 실패: ' + e.message);
+    } finally { addBtn.disabled = false; }
   }
 
-  addBtn.addEventListener('click', addItem);
-  [iName, iPrice, iBc, iCode].forEach((el) =>
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') addItem(); }));
-  wSearch.addEventListener('input', renderList);
-
-  wList.addEventListener('click', (e) => {
-    const b = e.target.closest('.wset-del');
-    if (!b) return;
-    const idx = Number(b.dataset.idx);
-    const it = items[idx];
-    if (!it) return;
-    if (!confirm('「' + it.name + '」을(를) 목록에서 삭제할까요?')) return;
-    items.splice(idx, 1);
-    addedCodes.delete(it.code);
-    regen();
+  /* ── 삭제 ── */
+  wList.addEventListener('click', async (e) => {
+    const b = e.target.closest('.wset-del'); if (!b) return;
+    const code = b.dataset.code;
+    const it = items.find(x => String(x.code) === code); if (!it) return;
+    if (!confirm('「' + it.name + '」을(를) 삭제할까요? (바로 반영됩니다)')) return;
+    const pass = ensurePass(); if (!pass) return;
+    try {
+      await rpc('barcode_delete', { pass, p_code: code });
+      addedCodes.delete(code);
+      await reload();
+      say('삭제됨');
+    } catch (e) { if (!authFail(e)) alert('삭제 실패: ' + e.message); }
   });
 
-  // ── 엑셀로 전체 교체 ──
-  function build(rows, fileName) {
-    const hi = rows.findIndex((r) => String(r[0]).trim() === 'No.');
-    if (hi < 0) throw new Error('"No." 머리글 행을 찾지 못했습니다. 포스에서 받은 원본 엑셀인지 확인하세요.');
-    const head = rows[hi].map((h) => String(h || '').trim());
+  /* ── 엑셀 일괄 ── */
+  function build(rows) {
+    const hi = rows.findIndex(r => String(r[0]).trim() === 'No.');
+    if (hi < 0) throw new Error('"No." 머리글 행을 찾지 못했습니다. 포스 원본 엑셀인지 확인하세요.');
+    const head = rows[hi].map(h => String(h || '').trim());
     const col = (name) => head.indexOf(name);
     const cCode = col('상품코드'), cName = col('상품명'), cBc = col('바코드'), cPrice = col('판매단가');
-    if (cCode < 0 || cName < 0 || cBc < 0 || cPrice < 0) {
-      throw new Error('필요한 열(상품코드/상품명/바코드/판매단가)이 없습니다.');
-    }
-    return rows.slice(hi + 1).filter((r) => r[cCode]).map((r, i) =>
+    if (cCode < 0 || cName < 0 || cBc < 0 || cPrice < 0) throw new Error('필요한 열(상품코드/상품명/바코드/판매단가)이 없습니다.');
+    return rows.slice(hi + 1).filter(r => r[cCode]).map((r, i) =>
       makeItem(r[cName], String(r[cCode]).trim(), r[cBc], r[cPrice], Number(r[0]) || i + 1));
   }
-
   function handleExcel(f) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const wb = XLSX.read(e.target.result, { type: 'array' });
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true });
-        const parsed = build(rows, f.name);
-        if (items.length && !confirm('현재 목록 ' + items.length + '개를 엑셀 ' + parsed.length + '개로 전부 교체할까요?')) return;
-        items = parsed;
-        source = f.name;
-        addedCodes.clear();
-        wSearch.value = '';
-        const noBc = items.filter((i) => !i.bc).length;
-        const ean = items.filter((i) => i.fmt === 'EAN13').length;
-        const c128 = items.filter((i) => i.fmt === 'CODE128').length;
-        const dis = items.filter((i) => i.dis).length;
-        report.innerHTML =
-          '<div class="ok">✅ ' + esc(f.name) + ' — 상품 ' + items.length + '개로 교체했습니다.</div>' +
-          '<div>· EAN-13 ' + ean + '개 · CODE128 ' + c128 + '개' +
-          (noBc ? ' · <span class="warn">바코드 없음 ' + noBc + '개</span>' : '') +
-          (dis ? ' · 단종 ' + dis + '개' : '') + '</div>';
-        regen();
+        const arr = build(rows);
+        if (!confirm('엑셀 ' + arr.length + '개를 일괄 등록/갱신할까요? (상품코드 기준)')) return;
+        const pass = ensurePass(); if (!pass) return;
+        report.innerHTML = '<div class="muted">업로드 중…</div>';
+        const n = await rpc('barcode_bulk_upsert', { pass, arr });
+        await reload();
+        report.innerHTML = '<div class="ok">✅ ' + esc(f.name) + ' — ' + n + '개 등록/갱신 완료.</div>';
+        say(n + '개 반영됨');
       } catch (err) {
-        report.innerHTML = '<div class="warn">⚠️ ' + esc(err.message) + '</div>';
+        if (!authFail(err)) report.innerHTML = '<div class="warn">⚠️ ' + esc(err.message) + '</div>';
       }
     };
     reader.readAsArrayBuffer(f);
   }
-
   drop.addEventListener('click', () => file.click());
   file.addEventListener('change', () => { if (file.files[0]) handleExcel(file.files[0]); });
-  ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
-  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-  drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleExcel(f); });
+  ['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleExcel(f); });
 
-  // ── 내려받기 / 복사 ──
-  dl.addEventListener('click', () => {
-    const blob = new Blob([out], { type: 'application/javascript;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'data.js';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-  cp.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(out); say('data.js 내용을 복사했습니다'); }
-    catch (e) { say('복사에 실패했습니다. 내려받기를 이용하세요'); }
-  });
-
-  // ── 현재 배포 중인 data.js 불러오기 (캐시 무효화) ──
-  function init() {
-    const d = window.BARCODE_DATA;
-    if (d && Array.isArray(d.items)) {
-      items = d.items.slice();
-      source = d.source || source;
-      baseInfo.textContent = '현재 배포본: ' + (d.updated || '?') + ' 기준 ' + items.length + '개 불러옴 — 여기에 추가/수정하세요.';
-    } else {
-      baseInfo.textContent = '⚠️ 현재 data.js를 불러오지 못했습니다. 상품을 직접 추가하거나 엑셀을 올리세요.';
+  /* ── 시작 ── */
+  (async () => {
+    refreshPassState();
+    try {
+      await reload();
+      baseInfo.textContent = '현재 ' + items.length + '개 등록됨 — 추가/수정/삭제가 바로 반영됩니다.';
+    } catch (e) {
+      baseInfo.textContent = '⚠️ 상품을 불러오지 못했습니다: ' + e.message;
     }
-    regen();
-  }
-  const s = document.createElement('script');
-  s.src = 'data.js?t=' + Date.now();
-  s.onload = init;
-  s.onerror = init;
-  document.head.appendChild(s);
+  })();
 })();
 </script>
 </body>

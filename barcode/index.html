@@ -101,7 +101,26 @@
 
 <div class="toast" id="toast" hidden></div>
 
+<script src="config.js?v=4"></script>
 <script src="data.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script>
+// Supabase에서 최신 상품을 불러온 뒤 앱을 시작한다. 실패하면 data.js(스냅샷)로 동작.
+(async () => {
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/products?select=n,code,name,grp,bc,fmt,price,dis&order=n.asc', {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY }
+    });
+    if (r.ok) {
+      const rows = await r.json();
+      if (Array.isArray(rows) && rows.length) {
+        window.BARCODE_DATA = { items: rows, updated: '실시간', source: 'Supabase' };
+      }
+    }
+  } catch (e) { /* 네트워크 차단 등 → data.js 유지 */ }
+  const s = document.createElement('script');
+  s.src = 'app.js?v=4';
+  document.body.appendChild(s);
+})();
+</script>
 </body>
 </html>
