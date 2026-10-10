@@ -18,10 +18,10 @@
   .step h2 { font-size: 15px; margin-bottom: 10px; }
   .step p { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
   .step code { background: var(--surface2); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
-  .drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 32px; text-align: center;
+  .drop { border: 2px dashed var(--border); border-radius: var(--radius); padding: 28px; text-align: center;
           cursor: pointer; transition: border-color .15s, background .15s; }
   .drop:hover, .drop.over { border-color: var(--accent); background: rgba(79,125,255,.06); }
-  .drop-icon { font-size: 34px; margin-bottom: 8px; }
+  .drop-icon { font-size: 30px; margin-bottom: 8px; }
   .drop-sub { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-primary:hover { background: var(--accent-hover); }
@@ -32,6 +32,35 @@
   .actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
   .back { display: inline-block; margin-bottom: 18px; color: var(--text-muted); font-size: 13px; text-decoration: none; }
   .back:hover { color: var(--accent-hover); }
+
+  /* 상품 직접 추가 폼 */
+  .f-row { display: grid; grid-template-columns: 96px 1fr; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .f-row label { font-size: 13px; color: var(--text-muted); }
+  .f-row label .req { color: #ff7875; }
+  .f-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+             color: var(--text); font-size: 14px; padding: 9px 11px; font-family: inherit; }
+  .f-input:focus { outline: none; border-color: var(--accent); }
+  .f-hint { font-size: 11px; color: var(--text-muted); margin: -4px 0 10px 104px; }
+
+  /* 현재 데이터 작업 목록 */
+  .wset { margin-top: 16px; }
+  .wset-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .wset-title { font-size: 13px; font-weight: 700; }
+  .wset-count { font-size: 12px; color: var(--accent); font-weight: 700; margin-left: auto; }
+  .wset-search { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+                 color: var(--text); font-size: 13px; padding: 8px 11px; font-family: inherit; margin-bottom: 8px; }
+  .wset-search:focus { outline: none; border-color: var(--accent); }
+  .wset-list { max-height: 300px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .wset-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .wset-row:last-child { border-bottom: none; }
+  .wset-row.added { background: rgba(79,125,255,.08); }
+  .wset-main { flex: 1; min-width: 0; }
+  .wset-name { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wset-meta { color: var(--text-muted); font-size: 11px; margin-top: 1px; }
+  .wset-del { background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+              font-size: 14px; padding: 4px 7px; border-radius: 6px; flex-shrink: 0; }
+  .wset-del:hover { color: #ff7875; background: rgba(229,57,53,.1); }
+  .muted { color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -39,25 +68,67 @@
   <a href="index.html" class="back">← 바코드북으로 돌아가기</a>
   <h1>🔄 데이터 갱신 (관리자용)</h1>
   <p class="lead">
-    포스에서 받은 <b>바코드북 엑셀</b>(상품조회 내역)을 올리면 <code>data.js</code> 파일을 새로 만들어 줍니다.
-    받은 파일을 <code>barcode/data.js</code> 에 덮어쓰고 커밋하면 전 직원 화면에 반영됩니다.
+    상품을 <b>직접 추가</b>하거나, 포스 <b>바코드북 엑셀</b>(상품조회 내역)을 통째로 올려 데이터를 만듭니다.
+    완성되면 <code>data.js</code> 를 내려받아 <code>barcode/data.js</code> 에 덮어쓰고 커밋하면 전 직원 화면에 반영됩니다.
+    <br /><b id="baseInfo" class="muted">현재 데이터 불러오는 중…</b>
   </p>
 
   <div class="steps">
+
+    <!-- 상품 직접 추가 -->
     <div class="step">
-      <h2>1. 엑셀 올리기</h2>
+      <h2>➕ 상품 직접 추가</h2>
+      <p style="margin-bottom:14px;">현재 데이터에 상품을 하나씩 더합니다. 같은 <b>상품코드</b>면 기존 상품을 갱신합니다.</p>
+      <div class="f-row">
+        <label>상품명 <span class="req">*</span></label>
+        <input class="f-input" id="iName" placeholder="예: (골)반달이 가방걸이" />
+      </div>
+      <div class="f-hint">상품명 앞 <code>(골)</code>처럼 괄호 글자가 있으면 분류로 자동 인식됩니다.</div>
+      <div class="f-row">
+        <label>판매단가 <span class="req">*</span></label>
+        <input class="f-input" id="iPrice" inputmode="numeric" placeholder="예: 11000" />
+      </div>
+      <div class="f-row">
+        <label>바코드</label>
+        <input class="f-input" id="iBc" inputmode="numeric" placeholder="예: 8809642670075 (없으면 비움)" />
+      </div>
+      <div class="f-hint">13자리 EAN-13 / 그 외는 CODE128로 자동 판별. 비우면 바코드 없이 등록됩니다.</div>
+      <div class="f-row">
+        <label>상품코드</label>
+        <input class="f-input" id="iCode" placeholder="비우면 자동 발번 (예: 000261)" />
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="addBtn">➕ 목록에 추가</button>
+      </div>
+
+      <!-- 현재 작업 목록 -->
+      <div class="wset">
+        <div class="wset-head">
+          <span class="wset-title">📋 현재 목록</span>
+          <span class="wset-count" id="wCount">0개</span>
+        </div>
+        <input class="wset-search" id="wSearch" placeholder="상품명 · 상품코드 · 바코드로 찾기" />
+        <div class="wset-list" id="wList"></div>
+      </div>
+    </div>
+
+    <!-- 엑셀로 전체 교체 -->
+    <div class="step">
+      <h2>📂 엑셀로 전체 교체 (선택)</h2>
+      <p style="margin-bottom:10px;">포스 엑셀을 올리면 위 목록이 <b>엑셀 내용으로 전부 교체</b>됩니다. (개별 추가만 할 땐 안 써도 됩니다.)</p>
       <div class="drop" id="drop">
         <div class="drop-icon">📂</div>
         <div>엑셀 파일을 끌어다 놓거나 클릭해서 선택</div>
-        <div class="drop-sub">.xls / .xlsx — <code>No. / 상품코드 / 상품명 / 대분류 / 바코드 / … / 판매단가</code> 머리글이 있는 시트</div>
+        <div class="drop-sub">.xls / .xlsx — <code>No. / 상품코드 / 상품명 / 대분류 / 바코드 / … / 판매단가</code> 머리글 시트</div>
         <input type="file" id="file" accept=".xls,.xlsx" hidden />
       </div>
       <div class="report" id="report"></div>
     </div>
 
+    <!-- 내려받기 -->
     <div class="step">
-      <h2>2. data.js 내려받기</h2>
-      <p>아래 버튼으로 파일을 받은 뒤 <code>barcode/data.js</code> 를 교체하세요.</p>
+      <h2>⬇️ data.js 내려받기</h2>
+      <p>아래 버튼으로 파일을 받은 뒤 <code>barcode/data.js</code> 를 교체하고 커밋하세요.</p>
       <div class="actions">
         <button class="btn btn-primary" id="dl" disabled>⬇️ data.js 내려받기</button>
         <button class="btn btn-outline" id="cp" disabled>📋 내용 복사</button>
@@ -73,14 +144,23 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const drop = $('drop'), file = $('file'), report = $('report'), dl = $('dl'), cp = $('cp'), toast = $('toast');
+  const iName = $('iName'), iPrice = $('iPrice'), iBc = $('iBc'), iCode = $('iCode'), addBtn = $('addBtn');
+  const wList = $('wList'), wCount = $('wCount'), wSearch = $('wSearch'), baseInfo = $('baseInfo');
+
+  let items = [];           // 작업 중인 상품 목록
+  let source = '바코드북.xls';
   let out = '';
+  const addedCodes = new Set();   // 이번 세션에 추가/수정한 코드 (하이라이트용)
 
   function say(msg) {
     toast.textContent = msg;
     toast.hidden = false;
     setTimeout(() => { toast.hidden = true; }, 1800);
   }
-
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
   function ean13ok(s) {
     if (!/^\d{13}$/.test(s)) return false;
     let sum = 0;
@@ -88,6 +168,122 @@
     return (10 - sum % 10) % 10 === +s[12];
   }
 
+  // 상품명/바코드/가격으로 표준 item 객체 생성 (키 순서 = data.js 포맷과 동일)
+  function makeItem(name, code, bc, price, n) {
+    name = String(name).trim();
+    bc = String(bc || '').trim();
+    const g = name.match(/\((.)\)/);
+    const it = {
+      n: n,
+      code: String(code || '').trim(),
+      name: name,
+      grp: g ? g[1] : '',
+      bc: bc,
+      fmt: bc ? (ean13ok(bc) ? 'EAN13' : 'CODE128') : '',
+      price: Number(String(price).replace(/[^0-9.]/g, '')) || 0,
+    };
+    if (/^사용(불가|중지)/.test(name)) it.dis = true;
+    return it;
+  }
+
+  function nextN() {
+    let max = 0;
+    items.forEach((i) => { if (Number(i.n) > max) max = Number(i.n); });
+    return max + 1;
+  }
+  function nextCode() {
+    let max = 0;
+    items.forEach((i) => { if (/^\d+$/.test(i.code) && +i.code > max) max = +i.code; });
+    return String(max + 1).padStart(6, '0');
+  }
+
+  function serialize() {
+    const today = new Date().toISOString().slice(0, 10);
+    return '/* 자동 생성 파일 — barcode/update.html 로 갱신하세요. 직접 수정 금지 */\n' +
+      'window.BARCODE_DATA = {\n  updated: ' + JSON.stringify(today) +
+      ',\n  source: ' + JSON.stringify(source) + ',\n  items: [\n' +
+      items.map((i) => '    ' + JSON.stringify(i)).join(',\n') + '\n  ]\n};\n';
+  }
+
+  function renderList() {
+    wCount.textContent = items.length + '개';
+    const q = wSearch.value.trim().toLowerCase();
+    const rows = items
+      .map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => !q
+        || it.name.toLowerCase().includes(q)
+        || String(it.code).toLowerCase().includes(q)
+        || String(it.bc).includes(q));
+    if (!rows.length) {
+      wList.innerHTML = '<div class="wset-row"><span class="muted">표시할 상품이 없습니다</span></div>';
+      return;
+    }
+    wList.innerHTML = rows.map(({ it, idx }) =>
+      '<div class="wset-row' + (addedCodes.has(it.code) ? ' added' : '') + '">' +
+        '<div class="wset-main">' +
+          '<div class="wset-name">' + esc(it.name) + (it.dis ? ' <span class="muted">(단종)</span>' : '') + '</div>' +
+          '<div class="wset-meta">' + (it.price || 0).toLocaleString() + '원 · ' + esc(it.code) +
+            (it.bc ? ' · ' + esc(it.bc) : ' · <span class="muted">바코드 없음</span>') + '</div>' +
+        '</div>' +
+        '<button class="wset-del" data-idx="' + idx + '" title="삭제">✕</button>' +
+      '</div>'
+    ).join('');
+  }
+
+  function regen() {
+    out = serialize();
+    const has = items.length > 0;
+    dl.disabled = !has;
+    cp.disabled = !has;
+    renderList();
+  }
+
+  // ── 상품 직접 추가 ──
+  function addItem() {
+    const name = iName.value.trim();
+    const priceRaw = iPrice.value.trim();
+    if (!name) { iName.focus(); iName.style.borderColor = '#ff7875'; setTimeout(() => iName.style.borderColor = '', 1500); return; }
+    if (!priceRaw) { iPrice.focus(); iPrice.style.borderColor = '#ff7875'; setTimeout(() => iPrice.style.borderColor = '', 1500); return; }
+
+    let code = iCode.value.trim();
+    const existingIdx = code ? items.findIndex((x) => String(x.code) === code) : -1;
+    if (!code) code = nextCode();
+
+    if (existingIdx >= 0) {
+      const keepN = items[existingIdx].n;
+      items[existingIdx] = makeItem(name, code, iBc.value, priceRaw, keepN);
+      addedCodes.add(code);
+      say('기존 상품(코드 ' + code + ')을 갱신했습니다');
+    } else {
+      items.push(makeItem(name, code, iBc.value, priceRaw, nextN()));
+      addedCodes.add(code);
+      say('추가되었습니다 (총 ' + items.length + '개)');
+    }
+
+    iName.value = ''; iPrice.value = ''; iBc.value = ''; iCode.value = '';
+    iName.focus();
+    wSearch.value = '';
+    regen();
+  }
+
+  addBtn.addEventListener('click', addItem);
+  [iName, iPrice, iBc, iCode].forEach((el) =>
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') addItem(); }));
+  wSearch.addEventListener('input', renderList);
+
+  wList.addEventListener('click', (e) => {
+    const b = e.target.closest('.wset-del');
+    if (!b) return;
+    const idx = Number(b.dataset.idx);
+    const it = items[idx];
+    if (!it) return;
+    if (!confirm('「' + it.name + '」을(를) 목록에서 삭제할까요?')) return;
+    items.splice(idx, 1);
+    addedCodes.delete(it.code);
+    regen();
+  });
+
+  // ── 엑셀로 전체 교체 ──
   function build(rows, fileName) {
     const hi = rows.findIndex((r) => String(r[0]).trim() === 'No.');
     if (hi < 0) throw new Error('"No." 머리글 행을 찾지 못했습니다. 포스에서 받은 원본 엑셀인지 확인하세요.');
@@ -97,74 +293,46 @@
     if (cCode < 0 || cName < 0 || cBc < 0 || cPrice < 0) {
       throw new Error('필요한 열(상품코드/상품명/바코드/판매단가)이 없습니다.');
     }
-
-    const items = rows.slice(hi + 1).filter((r) => r[cCode]).map((r, i) => {
-      const name = String(r[cName] || '').trim();
-      const bc = String(r[cBc] == null ? '' : r[cBc]).trim();
-      const g = name.match(/\((.)\)/);
-      const it = {
-        n: Number(r[0]) || i + 1,
-        code: String(r[cCode]).trim(),
-        name,
-        grp: g ? g[1] : '',
-        bc,
-        fmt: bc ? (ean13ok(bc) ? 'EAN13' : 'CODE128') : '',
-        price: Number(r[cPrice]) || 0,
-      };
-      if (/^사용(불가|중지)/.test(name)) it.dis = true;
-      return it;
-    });
-
-    const today = new Date().toISOString().slice(0, 10);
-    const js = '/* 자동 생성 파일 — barcode/update.html 로 갱신하세요. 직접 수정 금지 */\n' +
-      'window.BARCODE_DATA = {\n  updated: ' + JSON.stringify(today) +
-      ',\n  source: ' + JSON.stringify(fileName) + ',\n  items: [\n' +
-      items.map((i) => '    ' + JSON.stringify(i)).join(',\n') + '\n  ]\n};\n';
-    return { js, items };
+    return rows.slice(hi + 1).filter((r) => r[cCode]).map((r, i) =>
+      makeItem(r[cName], String(r[cCode]).trim(), r[cBc], r[cPrice], Number(r[0]) || i + 1));
   }
 
-  function handle(f) {
+  function handleExcel(f) {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const wb = XLSX.read(e.target.result, { type: 'array' });
         const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true });
-        const res = build(rows, f.name);
-        out = res.js;
-        const items = res.items;
+        const parsed = build(rows, f.name);
+        if (items.length && !confirm('현재 목록 ' + items.length + '개를 엑셀 ' + parsed.length + '개로 전부 교체할까요?')) return;
+        items = parsed;
+        source = f.name;
+        addedCodes.clear();
+        wSearch.value = '';
         const noBc = items.filter((i) => !i.bc).length;
         const ean = items.filter((i) => i.fmt === 'EAN13').length;
         const c128 = items.filter((i) => i.fmt === 'CODE128').length;
         const dis = items.filter((i) => i.dis).length;
         report.innerHTML =
-          '<div class="ok">✅ ' + f.name + ' — 상품 ' + items.length + '개를 읽었습니다.</div>' +
+          '<div class="ok">✅ ' + esc(f.name) + ' — 상품 ' + items.length + '개로 교체했습니다.</div>' +
           '<div>· EAN-13 ' + ean + '개 · CODE128 ' + c128 + '개' +
           (noBc ? ' · <span class="warn">바코드 없음 ' + noBc + '개</span>' : '') +
           (dis ? ' · 단종 ' + dis + '개' : '') + '</div>';
-        dl.disabled = false;
-        cp.disabled = false;
+        regen();
       } catch (err) {
-        report.innerHTML = '<div class="warn">⚠️ ' + err.message + '</div>';
-        dl.disabled = true;
-        cp.disabled = true;
+        report.innerHTML = '<div class="warn">⚠️ ' + esc(err.message) + '</div>';
       }
     };
     reader.readAsArrayBuffer(f);
   }
 
   drop.addEventListener('click', () => file.click());
-  file.addEventListener('change', () => { if (file.files[0]) handle(file.files[0]); });
-  ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => {
-    e.preventDefault(); drop.classList.add('over');
-  }));
-  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => {
-    e.preventDefault(); drop.classList.remove('over');
-  }));
-  drop.addEventListener('drop', (e) => {
-    const f = e.dataTransfer.files[0];
-    if (f) handle(f);
-  });
+  file.addEventListener('change', () => { if (file.files[0]) handleExcel(file.files[0]); });
+  ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; if (f) handleExcel(f); });
 
+  // ── 내려받기 / 복사 ──
   dl.addEventListener('click', () => {
     const blob = new Blob([out], { type: 'application/javascript;charset=utf-8' });
     const a = document.createElement('a');
@@ -173,15 +341,28 @@
     a.click();
     URL.revokeObjectURL(a.href);
   });
-
   cp.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(out);
-      say('data.js 내용을 복사했습니다');
-    } catch (e) {
-      say('복사에 실패했습니다. 내려받기를 이용하세요');
-    }
+    try { await navigator.clipboard.writeText(out); say('data.js 내용을 복사했습니다'); }
+    catch (e) { say('복사에 실패했습니다. 내려받기를 이용하세요'); }
   });
+
+  // ── 현재 배포 중인 data.js 불러오기 (캐시 무효화) ──
+  function init() {
+    const d = window.BARCODE_DATA;
+    if (d && Array.isArray(d.items)) {
+      items = d.items.slice();
+      source = d.source || source;
+      baseInfo.textContent = '현재 배포본: ' + (d.updated || '?') + ' 기준 ' + items.length + '개 불러옴 — 여기에 추가/수정하세요.';
+    } else {
+      baseInfo.textContent = '⚠️ 현재 data.js를 불러오지 못했습니다. 상품을 직접 추가하거나 엑셀을 올리세요.';
+    }
+    regen();
+  }
+  const s = document.createElement('script');
+  s.src = 'data.js?t=' + Date.now();
+  s.onload = init;
+  s.onerror = init;
+  document.head.appendChild(s);
 })();
 </script>
 </body>
