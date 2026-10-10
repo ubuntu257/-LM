@@ -218,6 +218,10 @@ function buildCardHTML(item, isPrint = false) {
     ? `<div class="card-brand" style="color:${escHtml(state.brandColor)}">${escHtml(item.brand)}</div>`
     : '';
 
+  const copyBtn = isPrint
+    ? ''
+    : `<button class="card-copy" data-id="${item.id}" title="복사">⧉</button>`;
+
   const deleteBtn = isPrint
     ? ''
     : `<button class="card-delete" data-id="${item.id}" title="삭제">✕</button>`;
@@ -249,6 +253,7 @@ function buildCardHTML(item, isPrint = false) {
 
   return `
     <div class="${cls} theme-${escHtml(theme)}" data-id="${item.id}" ${sizeStyle}>
+      ${copyBtn}
       ${deleteBtn}
       <div class="card-inner">
         ${brandHtml}
@@ -303,6 +308,19 @@ function renderAll() {
         uploadStatus.className = 'upload-status';
         excelDropZone.classList.remove('success');
       }
+      renderAll();
+    });
+  });
+
+  // 복사 버튼 이벤트 (해당 카드 바로 뒤에 복제본 삽입)
+  cardsGrid.querySelectorAll('.card-copy').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const idx = state.items.findIndex(i => String(i.id) === id);
+      if (idx === -1) return;
+      const clone = { ...state.items[idx], id: Date.now() + Math.random() };
+      state.items.splice(idx + 1, 0, clone);
       renderAll();
     });
   });
@@ -385,6 +403,103 @@ function addSingleItem() {
   $('singleName').focus();
 
   renderAll();
+}
+
+/* ═══════════════════════════════════════
+   저장 / 불러오기 (브라우저 보관 + 파일 입출력)
+═══════════════════════════════════════ */
+const SAVE_KEY = 'showcard_saves_v1';
+
+function getSaves() {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function setSaves(arr) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(arr)); }
+  catch (e) { alert('브라우저 저장공간에 쓸 수 없습니다. (시크릿 모드 등)'); }
+}
+function refreshSaveList() {
+  const saves = getSaves();
+  const sel = $('saveSlotSelect');
+  sel.innerHTML = saves.length
+    ? saves.map((s, i) => `<option value="${i}">${escHtml(s.name)} · ${s.items.length}개</option>`).join('')
+    : '<option value="">저장된 목록 없음</option>';
+  const has = saves.length > 0;
+  $('loadSaveBtn').disabled = !has;
+  $('deleteSaveBtn').disabled = !has;
+}
+
+// 불러온 데이터(저장 슬롯/파일 공통)를 상태에 반영
+function applyLoadedData(data) {
+  state.items = (data.items || []).map(it => ({ ...it, id: Date.now() + Math.random() }));
+  if (data.template === 'basic' || data.template === 'multilang') {
+    state.template = data.template;
+    templateSelect.value = data.template;
+    applyTemplateUI();
+  }
+  renderAll();
+}
+
+function saveCurrent() {
+  if (state.items.length === 0) { alert('저장할 가격표가 없습니다.'); return; }
+  const name = prompt('저장할 이름을 입력하세요', new Date().toLocaleString('ko-KR'));
+  if (name == null) return;
+  const saves = getSaves();
+  saves.unshift({
+    name: (name.trim() || '이름없음'),
+    template: state.template,
+    items: state.items,
+    savedAt: Date.now(),
+  });
+  setSaves(saves);
+  refreshSaveList();
+}
+
+function loadSave() {
+  const saves = getSaves();
+  const slot = saves[Number($('saveSlotSelect').value)];
+  if (!slot) return;
+  if (state.items.length && !confirm(`현재 목록을 「${slot.name}」(으)로 교체할까요?`)) return;
+  applyLoadedData(slot);
+}
+
+function deleteSave() {
+  const saves = getSaves();
+  const idx = Number($('saveSlotSelect').value);
+  const slot = saves[idx];
+  if (!slot) return;
+  if (!confirm(`저장된 「${slot.name}」을(를) 삭제할까요?`)) return;
+  saves.splice(idx, 1);
+  setSaves(saves);
+  refreshSaveList();
+}
+
+function exportFile() {
+  if (state.items.length === 0) { alert('내보낼 가격표가 없습니다.'); return; }
+  const data = { app: 'showcard', version: 1, template: state.template, items: state.items, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `쇼카드_${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.items)) throw new Error('형식 오류');
+      if (state.items.length && !confirm('현재 목록을 파일 내용으로 교체할까요?')) return;
+      applyLoadedData(data);
+    } catch (err) {
+      alert('파일을 읽을 수 없습니다. 올바른 쇼카드 JSON 파일인지 확인하세요.');
+    }
+  };
+  reader.readAsText(file);
 }
 
 /* ═══════════════════════════════════════
@@ -536,8 +651,19 @@ subNameSizeInput.addEventListener('input', (e) => {
   updateCardSizeCss();
 });
 
+// 저장 / 불러오기
+$('saveCurrentBtn').addEventListener('click', saveCurrent);
+$('loadSaveBtn').addEventListener('click', loadSave);
+$('deleteSaveBtn').addEventListener('click', deleteSave);
+$('exportFileBtn').addEventListener('click', exportFile);
+$('importFileInput').addEventListener('change', (e) => {
+  if (e.target.files[0]) importFile(e.target.files[0]);
+  e.target.value = '';
+});
+
 // 초기 렌더링
 nameColorPicker.addEventListener('input', (e) => { state.nameColor = e.target.value; renderAll(); });
 priceColorPicker.addEventListener('input', (e) => { state.priceColor = e.target.value; renderAll(); });
 applyTemplateUI();
+refreshSaveList();
 renderAll();
